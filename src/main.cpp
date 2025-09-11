@@ -1,3 +1,4 @@
+#include <Arduino.h>
 #include "config.h"
 #include <Adafruit_NeoPixel.h>
 #include <Stepper.h>

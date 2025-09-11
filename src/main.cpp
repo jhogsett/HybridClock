@@ -18,6 +18,33 @@ bool isCalibrated = false;
 float handPosition = 0.0;
 uint32_t currentHue = 0;
 
+#ifdef ENABLE_PATTERN_SYSTEM
+// Pattern management system
+enum DisplayPattern {
+    PATTERN_DEFAULT_COMPLEMENT = 0,
+    PATTERN_BREATHING_RINGS,
+    PATTERN_RIPPLE_EFFECT,
+    PATTERN_SLOW_SPIRAL,
+    PATTERN_COUNT
+};
+
+struct PatternState {
+    DisplayPattern currentPattern;
+    uint32_t patternStartTime;
+    uint32_t lastPatternChange;
+    bool quarterHourActive;
+    uint32_t quarterHourStartTime;
+} patternState = {PATTERN_DEFAULT_COMPLEMENT, 0, 0, false, 0};
+
+// Pattern display functions
+void displayDefaultComplement();
+void displayBreathingRings();
+void displayRippleEffect();
+void displaySlowSpiral();
+void displayQuarterHourEffect();
+void updatePatternSystem();
+#endif
+
 void setup() {
     Serial.begin(115200);
     Serial.println("=== Hybrid Clock Starting ===");
@@ -235,13 +262,18 @@ void loop() {
     // Update LED display
     pixels.clear();
     
-    // Dynamic background pattern (complementary colors) - advance hue every second
+    #ifdef ENABLE_PATTERN_SYSTEM
+    // Use pattern system for dynamic displays
+    updatePatternSystem();
+    #else
+    // Original complementary color pattern
     pixels.fill(Adafruit_NeoPixel::ColorHSV(currentHue, 255, 8), 0, HOUR_LEDS);
     pixels.fill(Adafruit_NeoPixel::ColorHSV(currentHue + 32768L, 255, 127), HOUR_LEDS, MINUTE_LEDS);
     
     // Advance hue every second (original timing)
     currentHue += HUE_STEP;
     currentHue %= MAX_HUE;
+    #endif
     
     // Hour display (override background for hour positions) - original pattern
     int hour12 = hour % 12 + 1; // 12am/pm = 1, 1am/pm = 2, etc.
@@ -260,3 +292,166 @@ void loop() {
     
     pixels.show();
 }
+
+#ifdef ENABLE_PATTERN_SYSTEM
+// Pattern implementation functions
+
+void displayDefaultComplement() {
+    // Original complementary hue pattern
+    pixels.fill(Adafruit_NeoPixel::ColorHSV(currentHue, 255, 8), 0, HOUR_LEDS);
+    pixels.fill(Adafruit_NeoPixel::ColorHSV(currentHue + 32768L, 255, 127), HOUR_LEDS, MINUTE_LEDS);
+    
+    // Advance hue every second (original timing)
+    currentHue += HUE_STEP;
+    currentHue %= MAX_HUE;
+}
+
+void displayBreathingRings() {
+    // Gentle breathing effect - rings pulse in and out of phase
+    uint32_t time = millis();
+    float breathCycle = sin((time / 1000.0) * 0.5) * 0.5 + 0.5; // 4-second breathing cycle
+    float breathCycle2 = sin((time / 1000.0) * 0.3 + 1.5) * 0.5 + 0.5; // Offset breathing
+    
+    uint8_t brightness1 = 20 + (breathCycle * 60); // 20-80 brightness range
+    uint8_t brightness2 = 40 + (breathCycle2 * 100); // 40-140 brightness range
+    
+    pixels.fill(Adafruit_NeoPixel::ColorHSV(currentHue, 255, brightness1), 0, HOUR_LEDS);
+    pixels.fill(Adafruit_NeoPixel::ColorHSV(currentHue + 32768L, 255, brightness2), HOUR_LEDS, MINUTE_LEDS);
+    
+    // Slower hue advancement for breathing pattern
+    currentHue += HUE_STEP / 2;
+    currentHue %= MAX_HUE;
+}
+
+void displayRippleEffect() {
+    // Gentle ripple emanating from 12 o'clock position
+    uint32_t time = millis();
+    float ripplePhase = (time / 200.0); // Ripple speed
+    
+    for (int i = 0; i < HOUR_LEDS; i++) {
+        float distance = min(i, HOUR_LEDS - i); // Distance from position 0 (12 o'clock)
+        float ripple = sin(ripplePhase - distance * 0.8) * 0.5 + 0.5;
+        uint8_t brightness = 10 + (ripple * 40);
+        pixels.setPixelColor(i, Adafruit_NeoPixel::ColorHSV(currentHue, 255, brightness));
+    }
+    
+    // Inner ring with complementary color and offset ripple
+    for (int i = 0; i < MINUTE_LEDS; i++) {
+        float distance = min(i, MINUTE_LEDS - i);
+        float ripple = sin(ripplePhase - distance * 1.2 + 1.0) * 0.5 + 0.5;
+        uint8_t brightness = 50 + (ripple * 80);
+        pixels.setPixelColor(HOUR_LEDS + i, Adafruit_NeoPixel::ColorHSV(currentHue + 32768L, 255, brightness));
+    }
+    
+    currentHue += HUE_STEP;
+    currentHue %= MAX_HUE;
+}
+
+void displaySlowSpiral() {
+    // Colors slowly spiral around rings at different speeds
+    uint32_t time = millis();
+    float spiralPhase1 = (time / 3000.0); // Outer ring: 3 second rotation
+    float spiralPhase2 = (time / 2000.0); // Inner ring: 2 second rotation (different speed)
+    
+    for (int i = 0; i < HOUR_LEDS; i++) {
+        float angle = (i * 2.0 * PI / HOUR_LEDS) + spiralPhase1;
+        uint32_t hue = currentHue + (sin(angle) * 16384L); // Hue varies with position
+        uint8_t brightness = 20 + (cos(angle) * 30 + 30);
+        pixels.setPixelColor(i, Adafruit_NeoPixel::ColorHSV(hue, 255, brightness));
+    }
+    
+    for (int i = 0; i < MINUTE_LEDS; i++) {
+        float angle = (i * 2.0 * PI / MINUTE_LEDS) + spiralPhase2;
+        uint32_t hue = (currentHue + 32768L) + (sin(angle) * 16384L);
+        uint8_t brightness = 60 + (cos(angle) * 40 + 40);
+        pixels.setPixelColor(HOUR_LEDS + i, Adafruit_NeoPixel::ColorHSV(hue, 255, brightness));
+    }
+    
+    currentHue += HUE_STEP / 3; // Slower hue progression for spiral
+    currentHue %= MAX_HUE;
+}
+
+void displayQuarterHourEffect() {
+    // Brief celebration effect for quarter hours
+    uint32_t elapsed = millis() - patternState.quarterHourStartTime;
+    float progress = elapsed / (QUARTER_HOUR_EFFECT_DURATION * 1000.0);
+    
+    if (progress >= 1.0) {
+        patternState.quarterHourActive = false;
+        return;
+    }
+    
+    // Gentle bloom effect that spreads outward
+    float bloomIntensity = sin(progress * PI) * 200; // Peak at middle of effect
+    
+    for (int i = 0; i < TOTAL_LEDS; i++) {
+        uint8_t brightness = 20 + bloomIntensity;
+        brightness = constrain(brightness, 20, 220);
+        pixels.setPixelColor(i, Adafruit_NeoPixel::ColorHSV(currentHue, 180, brightness));
+    }
+    
+    Serial.print("Quarter hour effect: ");
+    Serial.print(progress * 100);
+    Serial.println("%");
+}
+
+void updatePatternSystem() {
+    uint32_t currentTime = millis();
+    
+    // Check for quarter-hour effects
+    #ifdef ENABLE_QUARTER_HOUR_EFFECTS
+    int minute = rtc.getMinute();
+    if ((minute == 15 || minute == 30 || minute == 45) && !patternState.quarterHourActive) {
+        if (currentTime - patternState.quarterHourStartTime > 60000) { // Don't repeat within 1 minute
+            patternState.quarterHourActive = true;
+            patternState.quarterHourStartTime = currentTime;
+            Serial.print("Quarter hour effect started at minute: ");
+            Serial.println(minute);
+        }
+    }
+    #endif
+    
+    // Handle active quarter-hour effect
+    if (patternState.quarterHourActive) {
+        displayQuarterHourEffect();
+        return; // Override other patterns during quarter-hour effect
+    }
+    
+    // Pattern rotation system
+    #ifdef ENABLE_PATTERN_ROTATION
+    if (currentTime - patternState.lastPatternChange > (PATTERN_CHANGE_INTERVAL * 1000)) {
+        patternState.currentPattern = (DisplayPattern)((patternState.currentPattern + 1) % PATTERN_COUNT);
+        patternState.lastPatternChange = currentTime;
+        patternState.patternStartTime = currentTime;
+        
+        Serial.print("Switching to pattern: ");
+        Serial.println(patternState.currentPattern);
+    }
+    #endif
+    
+    // Force specific test patterns
+    #ifdef TEST_BREATHING_RINGS
+    patternState.currentPattern = PATTERN_BREATHING_RINGS;
+    #elif defined(TEST_RIPPLE_EFFECT)
+    patternState.currentPattern = PATTERN_RIPPLE_EFFECT;
+    #elif defined(TEST_SLOW_SPIRAL)
+    patternState.currentPattern = PATTERN_SLOW_SPIRAL;
+    #endif
+    
+    // Execute current pattern
+    switch (patternState.currentPattern) {
+        case PATTERN_BREATHING_RINGS:
+            displayBreathingRings();
+            break;
+        case PATTERN_RIPPLE_EFFECT:
+            displayRippleEffect();
+            break;
+        case PATTERN_SLOW_SPIRAL:
+            displaySlowSpiral();
+            break;
+        default:
+            displayDefaultComplement();
+            break;
+    }
+}
+#endif

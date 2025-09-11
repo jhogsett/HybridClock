@@ -51,6 +51,18 @@
 // Test Configuration
 // #define TEST_HOUR_CHANGE_ON_STARTUP  // Comment out to disable startup test
 
+// Display Pattern Configuration
+#define ENABLE_PATTERN_SYSTEM        // Master enable for advanced patterns
+#define TEST_BREATHING_RINGS        // Test breathing pattern immediately
+// #define TEST_RIPPLE_EFFECT          // Test ripple pattern immediately  
+// #define TEST_SLOW_SPIRAL            // Test spiral pattern immediately
+// #define ENABLE_QUARTER_HOUR_EFFECTS // Enable 15/30/45 minute celebrations
+// #define ENABLE_PATTERN_ROTATION     // Cycle through patterns every few minutes
+
+// Pattern Timing
+#define PATTERN_CHANGE_INTERVAL 180  // Seconds between pattern changes (3 minutes)
+#define QUARTER_HOUR_EFFECT_DURATION 5  // Seconds for quarter-hour animations
+
 // Sensor States
 #define FOUND LOW
 #define NOTFOUND HIGH

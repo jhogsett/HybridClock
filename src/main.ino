@@ -34,12 +34,73 @@ void setup() {
     pixels.fill(pixels.Color(10, 10, 10));
     pixels.show();
     
-    // Find home position
-    for (int i = 0; i < STEPS_PER_REVOLUTION; i++) {
-        if (digitalRead(SENSOR_PIN) == LOW) {
-            break;
+    // Proper calibration procedure - find sensor center with device adjustment
+    handPosition = 0.0;
+    int cal_steps1 = 0;
+    int cal_steps2 = 0;
+    
+    // If already on the sensor, roll forward until it's not found
+    if (digitalRead(SENSOR_PIN) == FOUND) {
+        for (int i = 0; i < STEPS_PER_REVOLUTION; i++) {
+            if (digitalRead(SENSOR_PIN) == NOTFOUND)
+                break;
+            stepperMotor.step(1);
         }
+    }
+    
+    // Roll forward until the sensor is found
+    for (int i = 0; i < STEPS_PER_REVOLUTION; i++) {
+        if (digitalRead(SENSOR_PIN) == FOUND)
+            break;
         stepperMotor.step(1);
+    }
+    
+    // Roll forward slowly until the sensor is not found and count the steps
+    for (int i = 0; i < 2 * STEPS_PER_REVOLUTION; i++) {
+        if (digitalRead(SENSOR_PIN) == NOTFOUND)
+            break;
+        stepperMotor.step(1);
+        cal_steps1++;
+        delay(SLOW_DELAY);
+    }
+    
+    Serial.print("Fwd Steps: ");
+    Serial.println(cal_steps1);
+    
+    // Roll back until the sensor is found
+    for (int i = 0; i < STEPS_PER_REVOLUTION; i++) {
+        if (digitalRead(SENSOR_PIN) == FOUND)
+            break;
+        stepperMotor.step(-1);
+        delay(SLOW_DELAY);
+    }
+    
+    // Roll back slowly until the sensor is not found and count the steps
+    for (int i = 0; i < 2 * STEPS_PER_REVOLUTION; i++) {
+        if (digitalRead(SENSOR_PIN) == NOTFOUND)
+            break;
+        stepperMotor.step(-1);
+        cal_steps2++;
+        delay(SLOW_DELAY);
+    }
+    
+    Serial.print("Bak Steps: ");
+    Serial.println(cal_steps2);
+    
+    int cal_steps = (cal_steps1 + cal_steps2) / 2;
+    Serial.print("Center Steps: ");
+    Serial.println(cal_steps);
+    
+    // Roll forward slowly the average of the counted steps
+    for (int i = 0; i < cal_steps; i++) {
+        stepperMotor.step(1);
+        delay(SLOW_DELAY);
+    }
+    
+    // Roll back slowly half the number of counted steps plus centering adjustment
+    for (int i = 0; i < (cal_steps / 2) + CENTERING_ADJUSTMENT; i++) {
+        stepperMotor.step(-1);
+        delay(SLOW_DELAY);
     }
     
     isCalibrated = true;

@@ -13,6 +13,7 @@ Adafruit_NeoPixel pixels(TOTAL_LEDS, NEOPIXEL_PIN, NEO_GRB + NEO_KHZ800);
 int lastMinute = -1;
 bool isCalibrated = false;
 float handPosition = 0.0;
+uint32_t currentHue = 0;
 
 void setup() {
     Serial.begin(115200);
@@ -96,12 +97,15 @@ void loop() {
     // Update LED display
     pixels.clear();
     
-    // Background pattern
-    for (int i = 0; i < HOUR_LEDS; i++) {
-        pixels.setPixelColor(i, pixels.Color(0, 0, 4)); // Dim blue background
-    }
+    // Dynamic background pattern (complementary colors)
+    pixels.fill(Adafruit_NeoPixel::ColorHSV(currentHue, 255, 8), 0, HOUR_LEDS);
+    pixels.fill(Adafruit_NeoPixel::ColorHSV(currentHue + 32768L, 255, 127), HOUR_LEDS, MINUTE_LEDS);
     
-    // Hour display
+    // Advance hue slowly
+    currentHue += 256; // Slower than original for subtlety
+    currentHue %= 65536;
+    
+    // Hour display (override background for hour positions)
     int hour12 = hour % 12;
     if (hour12 == 0) {
         // 12 o'clock - LED 0
@@ -110,11 +114,6 @@ void loop() {
         // 1-11 o'clock - current hour LED
         int hourLED = hour12 * 2; // LEDs 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22
         pixels.setPixelColor(hourLED, pixels.Color(255, 255, 255));
-    }
-    
-    // Inner ring
-    for (int i = HOUR_LEDS; i < TOTAL_LEDS; i++) {
-        pixels.setPixelColor(i, pixels.Color(4, 0, 0)); // Dim red
     }
     
     pixels.show();

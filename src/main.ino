@@ -11,6 +11,7 @@ Adafruit_NeoPixel pixels(TOTAL_LEDS, NEOPIXEL_PIN, NEO_GRB + NEO_KHZ800);
 
 // State variables
 int lastMinute = -1;
+int lastHour = -1;
 bool isCalibrated = false;
 float handPosition = 0.0;
 uint32_t currentHue = 0;
@@ -60,6 +61,7 @@ void setup() {
         handPosition = targetPosition;
     }
     lastMinute = initialMinute;
+    lastHour = rtc.getHour(h12Flag, pm);
     
     Serial.println("=== Ready ===");
 }
@@ -92,6 +94,23 @@ void loop() {
         }
         
         lastMinute = minute;
+    }
+    
+    // Check for hour change and show animation
+    if (hour != lastHour && lastHour != -1) {
+        // Brief flash animation for new hour
+        int hour12 = hour % 12;
+        int hourLED = (hour12 == 0) ? 0 : hour12 * 2;
+        
+        for (int i = 0; i < 3; i++) {
+            pixels.setPixelColor(hourLED, pixels.Color(255, 255, 255));
+            pixels.show();
+            delay(200);
+            pixels.setPixelColor(hourLED, pixels.Color(0, 0, 0));
+            pixels.show();
+            delay(200);
+        }
+        lastHour = hour;
     }
     
     // Update LED display

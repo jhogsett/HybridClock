@@ -48,6 +48,9 @@
 #define RANDOM_SEED_PIN A7
 #define RANDOM_SEED_SAMPLES 16
 
+// Test Configuration
+// #define TEST_HOUR_CHANGE_ON_STARTUP  // Comment out to disable startup test
+
 // Sensor States
 #define FOUND LOW
 #define NOTFOUND HIGH

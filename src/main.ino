@@ -64,6 +64,35 @@ void setup() {
     lastHour = rtc.getHour(h12Flag, pm);
     
     Serial.println("=== Ready ===");
+    
+#ifdef TEST_HOUR_CHANGE_ON_STARTUP
+    // TEST: Trigger hour change animation after 3 seconds
+    delay(3000);
+    Serial.println("Testing hour change animation...");
+    
+    // Simulate hour change by temporarily setting lastHour to different value
+    int testHour = (lastHour + 1) % 24;
+    
+    // Brief flash animation for new hour (same code as in loop)
+    int hour12 = testHour % 12;
+    int hourLED = (hour12 == 0) ? 0 : hour12 * 2;
+    
+    Serial.print("Flashing LED ");
+    Serial.print(hourLED);
+    Serial.print(" for hour ");
+    Serial.println(testHour);
+    
+    for (int i = 0; i < 3; i++) {
+        pixels.setPixelColor(hourLED, pixels.Color(255, 255, 255));
+        pixels.show();
+        delay(200);
+        pixels.setPixelColor(hourLED, pixels.Color(0, 0, 0));
+        pixels.show();
+        delay(200);
+    }
+    
+    Serial.println("Hour change animation test complete");
+#endif
 }
 
 void loop() {

@@ -12,6 +12,7 @@ Adafruit_NeoPixel pixels(TOTAL_LEDS, NEOPIXEL_PIN, NEO_GRB + NEO_KHZ800);
 // State variables
 int lastMinute = -1;
 int lastHour = -1;
+int lastSecond = -1;
 bool isCalibrated = false;
 float handPosition = 0.0;
 uint32_t currentHue = 0;
@@ -110,10 +111,32 @@ void setup() {
     pixels.show();
     delay(2000);
     
-    // Move to current minute position
+    // Get current time for initial display
     bool h12Flag = false;
     bool pm = false;
     int initialMinute = rtc.getMinute();
+    int initialHour = rtc.getHour(h12Flag, pm);
+    lastMinute = initialMinute;
+    lastHour = initialHour;
+    
+    // Show proper colorful display immediately after calibration
+    pixels.clear();
+    pixels.fill(Adafruit_NeoPixel::ColorHSV(currentHue, 255, 8), 0, HOUR_LEDS);
+    pixels.fill(Adafruit_NeoPixel::ColorHSV(currentHue + 32768L, 255, 127), HOUR_LEDS, MINUTE_LEDS);
+    
+    // Show hour display
+    int hour12 = initialHour % 12 + 1;
+    for (int i = 1; i < 12; i++) {
+        if (i < hour12) {
+            pixels.setPixelColor(i * 2, pixels.Color(255, 255, 255));
+        }
+    }
+    if (hour12 == 1) {
+        pixels.setPixelColor(0, pixels.Color(255, 255, 255));
+    }
+    pixels.show();
+    
+    // Now move to current minute position (with nice display already showing)
     float targetPosition = initialMinute * (STEPS_PER_REVOLUTION / 60.0);
     float difference = targetPosition - handPosition;
     
@@ -121,8 +144,6 @@ void setup() {
         stepperMotor.step((int)difference);
         handPosition = targetPosition;
     }
-    lastMinute = initialMinute;
-    lastHour = rtc.getHour(h12Flag, pm);
     
     Serial.println("=== Ready ===");
     
@@ -157,12 +178,19 @@ void setup() {
 }
 
 void loop() {
+    // Do something only once per second (original timing pattern)
+    int second = rtc.getSecond();
+    if (second == lastSecond) {
+        delay(RTC_CHECK_DELAY);
+        return;
+    }
+    lastSecond = second;
+    
     // Get current time
     bool h12Flag = false;
     bool pm = false;
     int hour = rtc.getHour(h12Flag, pm);
     int minute = rtc.getMinute();
-    int second = rtc.getSecond();
     
     // Move hand when minute changes
     if (minute != lastMinute) {
@@ -206,26 +234,28 @@ void loop() {
     // Update LED display
     pixels.clear();
     
-    // Dynamic background pattern (complementary colors)
+    // Dynamic background pattern (complementary colors) - advance hue every second
     pixels.fill(Adafruit_NeoPixel::ColorHSV(currentHue, 255, 8), 0, HOUR_LEDS);
     pixels.fill(Adafruit_NeoPixel::ColorHSV(currentHue + 32768L, 255, 127), HOUR_LEDS, MINUTE_LEDS);
     
-    // Advance hue slowly
-    currentHue += 256; // Slower than original for subtlety
-    currentHue %= 65536;
+    // Advance hue every second (original timing)
+    currentHue += HUE_STEP;
+    currentHue %= MAX_HUE;
     
-    // Hour display (override background for hour positions)
-    int hour12 = hour % 12;
-    if (hour12 == 0) {
-        // 12 o'clock - LED 0
+    // Hour display (override background for hour positions) - original pattern
+    int hour12 = hour % 12 + 1; // 12am/pm = 1, 1am/pm = 2, etc.
+    
+    // Light up LEDs for all hours from 1 through current hour (except 12)
+    for (int i = 1; i < 12; i++) {
+        if (i < hour12) {
+            pixels.setPixelColor(i * 2, pixels.Color(255, 255, 255));
+        }
+    }
+    
+    // Special case for 12 o'clock - only light LED 0
+    if (hour12 == 1) {
         pixels.setPixelColor(0, pixels.Color(255, 255, 255));
-    } else {
-        // 1-11 o'clock - current hour LED
-        int hourLED = hour12 * 2; // LEDs 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22
-        pixels.setPixelColor(hourLED, pixels.Color(255, 255, 255));
     }
     
     pixels.show();
-    
-    delay(1000); // Update every second
 }

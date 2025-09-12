@@ -194,8 +194,9 @@ void setup() {
     
     if (abs(difference) > 0.5) {
         resumeMotor(); // Power up motor before movement
-        stepperMotor.step((int)difference);
-        handPosition = targetPosition;
+        int stepsToMove = (int)difference;
+        stepperMotor.step(stepsToMove);
+        handPosition += stepsToMove; // Update by actual steps moved
         pauseMotor(); // Power down motor after movement
     }
     
@@ -263,10 +264,14 @@ void loop() {
         
         if (abs(difference) > 0.5) {
             resumeMotor(); // Power up motor before movement
-            stepperMotor.step((int)difference);
-            handPosition = targetPosition;
+            int stepsToMove = (int)difference;
+            stepperMotor.step(stepsToMove);
+            handPosition += stepsToMove; // Update by actual steps moved, not target
+            
+            // Normalize position
             if (handPosition >= STEPS_PER_REVOLUTION) handPosition -= STEPS_PER_REVOLUTION;
             if (handPosition < 0) handPosition += STEPS_PER_REVOLUTION;
+            
             pauseMotor(); // Power down motor after movement
         }
         

@@ -180,11 +180,11 @@ void setup() {
     int hour12 = initialHour % 12 + 1;
     for (int i = 1; i < 12; i++) {
         if (i < hour12) {
-            pixels.setPixelColor(i * 2, pixels.Color(255, 255, 255));
+            pixels.setPixelColor(i * 2, pixels.Color(HOUR_COLOR_R, HOUR_COLOR_G, HOUR_COLOR_B));
         }
     }
     if (hour12 == 1) {
-        pixels.setPixelColor(0, pixels.Color(255, 255, 255));
+        pixels.setPixelColor(0, pixels.Color(HOUR_COLOR_R, HOUR_COLOR_G, HOUR_COLOR_B));
     }
     pixels.show();
     
@@ -223,7 +223,7 @@ void setup() {
     Serial.println(testHour);
     
     for (int i = 0; i < 3; i++) {
-        pixels.setPixelColor(hourLED, pixels.Color(255, 255, 255));
+        pixels.setPixelColor(hourLED, pixels.Color(HOUR_COLOR_R, HOUR_COLOR_G, HOUR_COLOR_B));
         pixels.show();
         delay(200);
         pixels.setPixelColor(hourLED, pixels.Color(0, 0, 0));
@@ -285,7 +285,7 @@ void loop() {
         int hourLED = (hour12 == 0) ? 0 : hour12 * 2;
         
         for (int i = 0; i < 3; i++) {
-            pixels.setPixelColor(hourLED, pixels.Color(255, 255, 255));
+            pixels.setPixelColor(hourLED, pixels.Color(HOUR_COLOR_R, HOUR_COLOR_G, HOUR_COLOR_B));
             pixels.show();
             delay(200);
             pixels.setPixelColor(hourLED, pixels.Color(0, 0, 0));
@@ -317,13 +317,13 @@ void loop() {
     // Light up LEDs for all hours from 1 through current hour (except 12)
     for (int i = 1; i < 12; i++) {
         if (i < hour12) {
-            pixels.setPixelColor(i * 2, pixels.Color(255, 255, 255));
+            pixels.setPixelColor(i * 2, pixels.Color(HOUR_COLOR_R, HOUR_COLOR_G, HOUR_COLOR_B));
         }
     }
     
     // Special case for 12 o'clock - only light LED 0
     if (hour12 == 1) {
-        pixels.setPixelColor(0, pixels.Color(255, 255, 255));
+        pixels.setPixelColor(0, pixels.Color(HOUR_COLOR_R, HOUR_COLOR_G, HOUR_COLOR_B));
     }
     
     pixels.show();

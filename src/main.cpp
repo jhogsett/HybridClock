@@ -50,6 +50,25 @@ void displayQuarterHourEffect();
 void updatePatternSystem();
 #endif
 
+// Motor power management functions
+bool motorPins[4] = {LOW, LOW, LOW, LOW};
+
+void pauseMotor() {
+    // Save current motor pin states
+    for (int i = 0; i < 4; i++) {
+        motorPins[i] = digitalRead(FIRST_MOTOR_PIN + i);
+        digitalWrite(FIRST_MOTOR_PIN + i, LOW);
+    }
+}
+
+void resumeMotor() {
+    // Restore motor pin states
+    for (int i = 0; i < 4; i++) {
+        digitalWrite(FIRST_MOTOR_PIN + i, motorPins[i]);
+    }
+    delay(SETTLE_TIME); // Allow motor to settle
+}
+
 void setup() {
     Serial.begin(115200);
     Serial.println("=== Hybrid Clock Starting ===");
@@ -174,9 +193,14 @@ void setup() {
     float difference = targetPosition - handPosition;
     
     if (abs(difference) > 0.5) {
+        resumeMotor(); // Power up motor before movement
         stepperMotor.step((int)difference);
         handPosition = targetPosition;
+        pauseMotor(); // Power down motor after movement
     }
+    
+    // Ensure motor is powered down when idle
+    pauseMotor();
     
     Serial.println("=== Ready ===");
     
@@ -238,10 +262,12 @@ void loop() {
         }
         
         if (abs(difference) > 0.5) {
+            resumeMotor(); // Power up motor before movement
             stepperMotor.step((int)difference);
             handPosition = targetPosition;
             if (handPosition >= STEPS_PER_REVOLUTION) handPosition -= STEPS_PER_REVOLUTION;
             if (handPosition < 0) handPosition += STEPS_PER_REVOLUTION;
+            pauseMotor(); // Power down motor after movement
         }
         
         lastMinute = minute;

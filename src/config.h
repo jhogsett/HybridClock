@@ -53,7 +53,8 @@
 
 // Display Pattern Configuration
 #define ENABLE_PATTERN_SYSTEM        // Master enable for advanced patterns
-#define TEST_BREATHING_RINGS        // Test breathing pattern immediately
+#define ENABLE_HOURLY_PATTERN_ROTATION // Change patterns randomly every hour
+// #define TEST_BREATHING_RINGS        // Test breathing pattern immediately
 // #define TEST_RIPPLE_EFFECT          // Test ripple pattern immediately  
 // #define TEST_SLOW_SPIRAL            // Test spiral pattern immediately
 // #define ENABLE_QUARTER_HOUR_EFFECTS // Enable 15/30/45 minute celebrations

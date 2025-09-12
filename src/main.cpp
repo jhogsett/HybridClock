@@ -5,6 +5,26 @@
 #include <Wire.h>
 #include <DS3231-RTC.h>
 
+enum DisplayPattern {
+    PATTERN_DEFAULT_COMPLEMENT = 0,
+    PATTERN_BREATHING_RINGS = 1,
+    PATTERN_RIPPLE_EFFECT = 2,
+    PATTERN_SLOW_SPIRAL = 3,
+    PATTERN_COUNT = 4
+};
+
+// For hourly rotation, we'll use just the first two patterns initially
+#define HOURLY_PATTERN_COUNT 2
+
+struct PatternState {
+    DisplayPattern currentPattern;
+    uint32_t patternStartTime;
+    uint32_t lastPatternChange;
+    bool quarterHourActive;
+    uint32_t quarterHourStartTime;
+    int lastHour; // Track hour changes for pattern switching
+} patternState = {PATTERN_DEFAULT_COMPLEMENT, 0, 0, false, 0, -1};
+
 // Hardware instances
 DS3231 rtc;
 Stepper stepperMotor(STEPS_PER_REVOLUTION, FIRST_MOTOR_PIN, FIRST_MOTOR_PIN+1, FIRST_MOTOR_PIN+2, FIRST_MOTOR_PIN+3);
@@ -20,21 +40,6 @@ uint32_t currentHue = 0;
 
 #ifdef ENABLE_PATTERN_SYSTEM
 // Pattern management system
-enum DisplayPattern {
-    PATTERN_DEFAULT_COMPLEMENT = 0,
-    PATTERN_BREATHING_RINGS,
-    PATTERN_RIPPLE_EFFECT,
-    PATTERN_SLOW_SPIRAL,
-    PATTERN_COUNT
-};
-
-struct PatternState {
-    DisplayPattern currentPattern;
-    uint32_t patternStartTime;
-    uint32_t lastPatternChange;
-    bool quarterHourActive;
-    uint32_t quarterHourStartTime;
-} patternState = {PATTERN_DEFAULT_COMPLEMENT, 0, 0, false, 0};
 
 // Pattern display functions
 void displayDefaultComplement();
@@ -398,6 +403,25 @@ void displayQuarterHourEffect() {
 void updatePatternSystem() {
     uint32_t currentTime = millis();
     
+    // Check for hour changes for pattern switching
+    #ifdef ENABLE_HOURLY_PATTERN_ROTATION
+    bool h12Flag, pm;
+    int currentHour = rtc.getHour(h12Flag, pm);
+    if (currentHour != patternState.lastHour) {
+        if (patternState.lastHour != -1) { // Skip first initialization
+            // Select random pattern from available hourly patterns
+            randomSeed(analogRead(RANDOM_SEED_PIN) + currentHour); // Seed with hour for some consistency
+            patternState.currentPattern = (DisplayPattern)random(HOURLY_PATTERN_COUNT);
+            
+            Serial.print("Hour changed to ");
+            Serial.print(currentHour);
+            Serial.print(", switching to pattern: ");
+            Serial.println(patternState.currentPattern);
+        }
+        patternState.lastHour = currentHour;
+    }
+    #endif
+    
     // Check for quarter-hour effects
     #ifdef ENABLE_QUARTER_HOUR_EFFECTS
     int minute = rtc.getMinute();
@@ -417,8 +441,8 @@ void updatePatternSystem() {
         return; // Override other patterns during quarter-hour effect
     }
     
-    // Pattern rotation system
-    #ifdef ENABLE_PATTERN_ROTATION
+    // Original pattern rotation system (disabled when hourly is enabled)
+    #if defined(ENABLE_PATTERN_ROTATION) && !defined(ENABLE_HOURLY_PATTERN_ROTATION)
     if (currentTime - patternState.lastPatternChange > (PATTERN_CHANGE_INTERVAL * 1000)) {
         patternState.currentPattern = (DisplayPattern)((patternState.currentPattern + 1) % PATTERN_COUNT);
         patternState.lastPatternChange = currentTime;

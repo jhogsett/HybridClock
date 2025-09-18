@@ -418,16 +418,19 @@ void displayGentleWaves() {
     
     for (int i = 0; i < HOUR_LEDS; i++) {
         float position = (float)i / HOUR_LEDS * 2.0 * PI;
-        float wave = sin(position + wavePhase) * 0.3 + 0.7; // Gentle wave between 0.4-1.0
+        float wave = sin(position + wavePhase) * 0.5 + 0.5; // Smoother wave between 0.0-1.0
         uint8_t brightness = 6 + (wave * 2); // 6-8 brightness range (respects original max)
+        // Smooth the brightness transitions
+        brightness = constrain(brightness, 6, 8);
         pixels.setPixelColor(i, Adafruit_NeoPixel::ColorHSV(currentHue, 255, brightness));
     }
     
-    // Inner ring with complementary color and offset wave
+    // Inner ring with more apparent complementary color and stronger wave
     for (int i = 0; i < MINUTE_LEDS; i++) {
         float position = (float)i / MINUTE_LEDS * 2.0 * PI;
-        float wave = sin(position + wavePhase + 1.0) * 0.3 + 0.7; // Offset wave
-        uint8_t brightness = 90 + (wave * 37); // 90-127 brightness range
+        float wave = sin(position + wavePhase + PI) * 0.4 + 0.6; // Opposite phase, more variation
+        uint8_t brightness = 70 + (wave * 57); // 70-127 brightness range (more apparent changes)
+        brightness = constrain(brightness, 70, 127);
         pixels.setPixelColor(HOUR_LEDS + i, Adafruit_NeoPixel::ColorHSV(currentHue + 32768L, 255, brightness));
     }
     

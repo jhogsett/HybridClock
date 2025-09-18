@@ -57,6 +57,9 @@ void updatePatternSystem();
 // Hour change animation
 void showWindmillHourChange(int newHour);
 
+// Quiet micro-calibration function
+void performQuietMicroCalibration();
+
 // Motor power management functions
 bool motorPins[4] = {LOW, LOW, LOW, LOW};
 
@@ -195,8 +198,8 @@ void setup() {
     
     Serial.println("Windmill hour change animation test complete");
 #endif
-    
-    // Move to current minute position AFTER animation completes
+
+    // Move to current minute position
     float targetPosition = initialMinute * (STEPS_PER_REVOLUTION / 60.0);
     float difference = targetPosition - handPosition;
     
@@ -261,6 +264,19 @@ void loop() {
         if (nextHour != lastHour) { // Only if we haven't already shown this transition
             // Eye-catching rainbow animation for upcoming new hour
             showWindmillHourChange(nextHour);
+            
+            // Perform micro-calibration every 4 hours (at hours 0, 4, 8, 12, 16, 20)
+            if (nextHour % 4 == 0) {
+                // Power up motor for micro-calibration
+                resumeMotor();
+                
+                // Perform quiet micro-calibration after hour change animation
+                performQuietMicroCalibration();
+                
+                // Power down motor after micro-calibration
+                pauseMotor();
+            }
+            
             lastHour = nextHour; // Update to prevent re-triggering
         }
     }
@@ -376,6 +392,127 @@ void showWindmillHourChange(int newHour) {
     }
     
     // Animation complete - no blank moment or final flash
+}
+
+// Quiet micro-calibration function - duplicates proven calibration algorithm
+// Assumes magnet is already near home position, performs extent sensing and centering
+// Leaves LEDs completely untouched for silent operation
+void performQuietMicroCalibration() {
+    // Save current LED state (do not modify LEDs during this process)
+    // The display continues showing whatever pattern was active
+    
+    int cal_steps1 = 0;
+    int cal_steps2 = 0;
+    
+    // SAFETY CHECK: If magnet is not found within a small range, silently exit
+    // This prevents unattractive full-sweep behavior if hand is not actually at home
+    bool magnetFound = false;
+    int searchSteps = 0;
+    int totalSearchSteps = 0;
+    
+    // Quick search for magnet - if not found nearby, bail out quietly
+    if (digitalRead(SENSOR_PIN) == FOUND) {
+        magnetFound = true;
+    } else {
+        // Search forward a bit
+        for (int i = 0; i < STEPS_PER_REVOLUTION / 12; i++) { // Search only 1/12 revolution (~5 minutes worth)
+            stepperMotor.step(1);
+            searchSteps++;
+            totalSearchSteps++;
+            if (digitalRead(SENSOR_PIN) == FOUND) {
+                magnetFound = true;
+                break;
+            }
+        }
+        
+        // If still not found, search backward from starting position
+        if (!magnetFound) {
+            // Return to starting position first
+            for (int i = 0; i < searchSteps; i++) {
+                stepperMotor.step(-1);
+                totalSearchSteps++;
+            }
+            searchSteps = 0; // Reset for backward search
+            
+            // Search backward
+            for (int i = 0; i < STEPS_PER_REVOLUTION / 12; i++) {
+                stepperMotor.step(-1);
+                searchSteps++;
+                totalSearchSteps++;
+                if (digitalRead(SENSOR_PIN) == FOUND) {
+                    magnetFound = true;
+                    break;
+                }
+            }
+        }
+    }
+    
+    // If magnet not found nearby, silently exit and restore position
+    if (!magnetFound) {
+        // Restore original position - return to where we started
+        // If we're currently backward from start, go forward to return
+        if (searchSteps > 0) { // We ended on a backward search
+            for (int i = 0; i < searchSteps; i++) {
+                stepperMotor.step(1); // Return forward to starting position
+            }
+        }
+        return; // Silent exit - no calibration performed
+    }
+    
+    // MICRO-CALIBRATION ALGORITHM - starts from current position (assumes on or near magnet)
+    // Skip the "exit and re-enter" logic since we want to measure from current position
+    
+    // Roll forward slowly until the sensor is not found and count the steps
+    for (int i = 0; i < 2 * STEPS_PER_REVOLUTION; i++) {
+        if (digitalRead(SENSOR_PIN) == NOTFOUND) {
+            break;
+        }
+        stepperMotor.step(1);
+        cal_steps1++;
+        delay(SLOW_DELAY);
+    }
+    
+    // Roll back until the sensor is found
+    for (int i = 0; i < STEPS_PER_REVOLUTION; i++) {
+        stepperMotor.step(-1);
+        if (digitalRead(SENSOR_PIN) == FOUND) {
+            break;
+        }
+    }
+    
+    // Roll back slowly until the sensor is not found and count the steps
+    for (int i = 0; i < 2 * STEPS_PER_REVOLUTION; i++) {
+        if (digitalRead(SENSOR_PIN) == NOTFOUND) {
+            break;
+        }
+        stepperMotor.step(-1);
+        cal_steps2++;
+        delay(SLOW_DELAY);
+    }
+    
+    Serial.print("Bak Steps: ");
+    Serial.println(cal_steps2);
+    
+    int cal_steps = (cal_steps1 + cal_steps2) / 2;
+    Serial.print("Center Steps: ");
+    Serial.println(cal_steps);
+    
+    // Roll forward slowly the average of the counted steps
+    for (int i = 0; i < cal_steps; i++) {
+        stepperMotor.step(1);
+        delay(SLOW_DELAY);
+    }
+    
+    // Roll back slowly half the number of counted steps plus centering adjustment
+    for (int i = 0; i < (cal_steps / 2) + CENTERING_ADJUSTMENT; i++) {
+        stepperMotor.step(-1);
+        delay(SLOW_DELAY);
+    }
+    
+    // Update position tracking to reflect we're now at home (0.0)
+    handPosition = 0.0;
+    
+    // LEDs remain completely untouched - display continues as normal
 }
 
 #ifdef ENABLE_PATTERN_SYSTEM

@@ -316,6 +316,8 @@ void loop() {
 
 // Eye-catching windmill hour change animation
 void showWindmillHourChange(int newHour) {
+    // DRAMATIC VERSION (commented out - save for alarm/alert use)
+    /*
     // Save current pattern state to restore after animation
     pixels.clear();
     
@@ -349,23 +351,56 @@ void showWindmillHourChange(int newHour) {
         pixels.show();
         delay(stepDelay);
     }
+    */
     
-    // Final flash of the new hour LED to emphasize the hour change
+    // SUBTLE VERSION: Rotating rainbow color field (one complete rotation in ~10 seconds)
+    int rotationSteps = 120; // Many more steps for very smooth rotation
+    int stepDelay = 83;      // 120 * 83 = ~10 seconds (5x slower, more pleasing)
+    
+    for (int step = 0; step < rotationSteps; step++) {
+        pixels.clear();
+        
+        // Create a rainbow that wraps around the ring and rotates
+        uint32_t rotationOffset = (step * 65535L / rotationSteps); // Rotation offset
+        
+        // Outer ring: rainbow color field that rotates
+        for (int i = 0; i < HOUR_LEDS; i++) {
+            // Each LED gets a different hue based on its position around the ring
+            uint32_t positionHue = (i * 65535L / HOUR_LEDS); // Rainbow spread across ring
+            uint32_t hue = (positionHue + rotationOffset) % 65536L; // Rotate the rainbow
+            uint8_t brightness = 35; // Steady brightness for clear rainbow
+            pixels.setPixelColor(i, Adafruit_NeoPixel::ColorHSV(hue, 255, brightness));
+        }
+        
+        // Inner ring: synchronized rainbow at half rotation speed (1:2 ratio)
+        for (int i = 0; i < MINUTE_LEDS; i++) {
+            // Each LED gets a different hue based on its position around the ring
+            uint32_t positionHue = (i * 65535L / MINUTE_LEDS); // Rainbow spread across ring
+            uint32_t hue = (positionHue + (rotationOffset / 2)) % 65536L; // Half rotation speed
+            uint8_t brightness = 80; // Brighter for inner ring visibility
+            pixels.setPixelColor(HOUR_LEDS + i, Adafruit_NeoPixel::ColorHSV(hue, 255, brightness));
+        }
+        
+        pixels.show();
+        delay(stepDelay);
+    }
+    
+    // Final emphasis: brief flash of the new hour LED
     int hour12 = newHour % 12;
     int hourLED = (hour12 == 0) ? 0 : hour12 * 2;
     
     pixels.clear();
-    for (int flash = 0; flash < 3; flash++) {
-        pixels.setPixelColor(hourLED, pixels.Color(255, 255, 255)); // Bright white flash
+    for (int flash = 0; flash < 2; flash++) {
+        pixels.setPixelColor(hourLED, pixels.Color(150, 150, 150)); // Subtle white flash
         pixels.show();
-        delay(150);
+        delay(100);
         pixels.clear();
         pixels.show();
         delay(100);
     }
     
     // Brief pause before returning to normal display
-    delay(200);
+    delay(150);
 }
 
 #ifdef ENABLE_PATTERN_SYSTEM

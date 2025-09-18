@@ -213,8 +213,7 @@ void setup() {
     Serial.println("=== Ready ===");
     
 #ifdef TEST_HOUR_CHANGE_ON_STARTUP
-    // TEST: Trigger hour change animation after 3 seconds
-    delay(3000);
+    // TEST: Trigger hour change animation immediately after calibration
     Serial.println("Testing hour change animation...");
     
     // Simulate hour change by temporarily setting lastHour to different value
@@ -273,10 +272,18 @@ void loop() {
         lastMinute = minute;
     }
     
-    // Check for hour change and show animation
-    if (hour != lastHour && lastHour != -1) {
-        // Eye-catching windmill animation for new hour
-        showWindmillHourChange(hour);
+    // Check for hour change and show animation during seconds 58-59 of last minute
+    if (minute == 59 && (second == 58 || second == 57)) { // Start at second 57 to ensure 2-second animation completes at top of hour
+        int nextHour = (hour + 1) % 24;
+        if (nextHour != lastHour) { // Only if we haven't already shown this transition
+            // Eye-catching rainbow animation for upcoming new hour
+            showWindmillHourChange(nextHour);
+            lastHour = nextHour; // Update to prevent re-triggering
+        }
+    }
+    
+    // Update lastHour when actual hour changes (for normal operation)
+    if (hour != lastHour && minute != 59) {
         lastHour = hour;
     }
     
@@ -360,23 +367,23 @@ void showWindmillHourChange(int newHour) {
     for (int step = 0; step < rotationSteps; step++) {
         pixels.clear();
         
-        // Create a rainbow that wraps around the ring and rotates
+        // Create a rainbow that wraps around the ring and rotates CLOCKWISE
         uint32_t rotationOffset = (step * 65535L / rotationSteps); // Rotation offset
         
-        // Outer ring: rainbow color field that rotates
+        // Outer ring: rainbow color field that rotates clockwise
         for (int i = 0; i < HOUR_LEDS; i++) {
             // Each LED gets a different hue based on its position around the ring
             uint32_t positionHue = (i * 65535L / HOUR_LEDS); // Rainbow spread across ring
-            uint32_t hue = (positionHue + rotationOffset) % 65536L; // Rotate the rainbow
+            uint32_t hue = (positionHue - rotationOffset + 65536L) % 65536L; // Rotate clockwise (subtract offset)
             uint8_t brightness = 35; // Steady brightness for clear rainbow
             pixels.setPixelColor(i, Adafruit_NeoPixel::ColorHSV(hue, 255, brightness));
         }
         
-        // Inner ring: synchronized rainbow rotating at EXACTLY half speed (visible 1:2 ratio)
+        // Inner ring: synchronized rainbow rotating clockwise at EXACTLY half speed (visible 1:2 ratio)
         for (int i = 0; i < MINUTE_LEDS; i++) {
             // Each LED gets a different hue based on its position around the ring
             uint32_t positionHue = (i * 65535L / MINUTE_LEDS); // Rainbow spread across ring
-            uint32_t hue = (positionHue + (rotationOffset / 2)) % 65536L; // EXACTLY half rotation speed
+            uint32_t hue = (positionHue - (rotationOffset / 2) + 65536L) % 65536L; // Clockwise at half speed
             uint8_t brightness = 80; // Brighter for inner ring visibility
             pixels.setPixelColor(HOUR_LEDS + i, Adafruit_NeoPixel::ColorHSV(hue, 255, brightness));
         }
@@ -385,22 +392,7 @@ void showWindmillHourChange(int newHour) {
         delay(stepDelay);
     }
     
-    // Final emphasis: brief flash of the new hour LED
-    int hour12 = newHour % 12;
-    int hourLED = (hour12 == 0) ? 0 : hour12 * 2;
-    
-    pixels.clear();
-    for (int flash = 0; flash < 2; flash++) {
-        pixels.setPixelColor(hourLED, pixels.Color(150, 150, 150)); // Subtle white flash
-        pixels.show();
-        delay(100);
-        pixels.clear();
-        pixels.show();
-        delay(100);
-    }
-    
-    // Brief pause before returning to normal display
-    delay(150);
+    // Animation complete - no blank moment or final flash
 }
 
 #ifdef ENABLE_PATTERN_SYSTEM

@@ -353,9 +353,9 @@ void showWindmillHourChange(int newHour) {
     }
     */
     
-    // SUBTLE VERSION: Rotating rainbow color field (one complete rotation in ~10 seconds)
-    int rotationSteps = 120; // Many more steps for very smooth rotation
-    int stepDelay = 83;      // 120 * 83 = ~10 seconds (5x slower, more pleasing)
+    // SUBTLE VERSION: Rotating rainbow color field (one complete rotation in ~2 seconds)
+    int rotationSteps = 48;  // More steps for smooth rotation but faster than before
+    int stepDelay = 42;      // 48 * 42 = ~2 seconds (back to reasonable speed)
     
     for (int step = 0; step < rotationSteps; step++) {
         pixels.clear();
@@ -372,11 +372,11 @@ void showWindmillHourChange(int newHour) {
             pixels.setPixelColor(i, Adafruit_NeoPixel::ColorHSV(hue, 255, brightness));
         }
         
-        // Inner ring: synchronized rainbow at half rotation speed (1:2 ratio)
+        // Inner ring: synchronized rainbow rotating at EXACTLY half speed (visible 1:2 ratio)
         for (int i = 0; i < MINUTE_LEDS; i++) {
             // Each LED gets a different hue based on its position around the ring
             uint32_t positionHue = (i * 65535L / MINUTE_LEDS); // Rainbow spread across ring
-            uint32_t hue = (positionHue + (rotationOffset / 2)) % 65536L; // Half rotation speed
+            uint32_t hue = (positionHue + (rotationOffset / 2)) % 65536L; // EXACTLY half rotation speed
             uint8_t brightness = 80; // Brighter for inner ring visibility
             pixels.setPixelColor(HOUR_LEDS + i, Adafruit_NeoPixel::ColorHSV(hue, 255, brightness));
         }

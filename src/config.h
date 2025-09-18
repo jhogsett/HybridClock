@@ -49,7 +49,7 @@
 #define RANDOM_SEED_SAMPLES 16
 
 // Test Configuration
-// #define TEST_HOUR_CHANGE_ON_STARTUP  // Comment out to disable startup test
+#define TEST_HOUR_CHANGE_ON_STARTUP  // Comment out to disable startup test
 
 // Display Pattern Configuration
 #define ENABLE_PATTERN_SYSTEM        // Master enable for advanced patterns

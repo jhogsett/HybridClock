@@ -54,6 +54,9 @@ void displayQuarterHourEffect();
 void updatePatternSystem();
 #endif
 
+// Hour change animation
+void showWindmillHourChange(int newHour);
+
 // Motor power management functions
 bool motorPins[4] = {LOW, LOW, LOW, LOW};
 
@@ -217,25 +220,13 @@ void setup() {
     // Simulate hour change by temporarily setting lastHour to different value
     int testHour = (lastHour + 1) % 24;
     
-    // Brief flash animation for new hour (same code as in loop)
-    int hour12 = testHour % 12;
-    int hourLED = (hour12 == 0) ? 0 : hour12 * 2;
-    
-    Serial.print("Flashing LED ");
-    Serial.print(hourLED);
-    Serial.print(" for hour ");
+    Serial.print("Testing windmill animation for hour ");
     Serial.println(testHour);
     
-    for (int i = 0; i < 3; i++) {
-        pixels.setPixelColor(hourLED, pixels.Color(HOUR_COLOR_R, HOUR_COLOR_G, HOUR_COLOR_B));
-        pixels.show();
-        delay(200);
-        pixels.setPixelColor(hourLED, pixels.Color(0, 0, 0));
-        pixels.show();
-        delay(200);
-    }
+    // Use new windmill animation
+    showWindmillHourChange(testHour);
     
-    Serial.println("Hour change animation test complete");
+    Serial.println("Windmill hour change animation test complete");
 #endif
 }
 
@@ -284,18 +275,8 @@ void loop() {
     
     // Check for hour change and show animation
     if (hour != lastHour && lastHour != -1) {
-        // Brief flash animation for new hour
-        int hour12 = hour % 12;
-        int hourLED = (hour12 == 0) ? 0 : hour12 * 2;
-        
-        for (int i = 0; i < 3; i++) {
-            pixels.setPixelColor(hourLED, pixels.Color(HOUR_COLOR_R, HOUR_COLOR_G, HOUR_COLOR_B));
-            pixels.show();
-            delay(200);
-            pixels.setPixelColor(hourLED, pixels.Color(0, 0, 0));
-            pixels.show();
-            delay(200);
-        }
+        // Eye-catching windmill animation for new hour
+        showWindmillHourChange(hour);
         lastHour = hour;
     }
     
@@ -331,6 +312,60 @@ void loop() {
     }
     
     pixels.show();
+}
+
+// Eye-catching windmill hour change animation
+void showWindmillHourChange(int newHour) {
+    // Save current pattern state to restore after animation
+    pixels.clear();
+    
+    // Create coordinated windmill rotation effect (about 2 seconds total)
+    int rotationSteps = 24; // Number of rotation steps
+    int stepDelay = 80;     // Milliseconds per step (24 * 80 = ~1.9 seconds)
+    
+    for (int step = 0; step < rotationSteps; step++) {
+        pixels.clear();
+        
+        // Outer ring windmill arm (bright white/yellow)
+        int outerPos = (step * 2) % HOUR_LEDS; // 2 LEDs per step for faster rotation
+        pixels.setPixelColor(outerPos, pixels.Color(255, 255, 200)); // Bright warm white
+        pixels.setPixelColor((outerPos + 1) % HOUR_LEDS, pixels.Color(200, 200, 150)); // Trailing glow
+        
+        // Opposite arm on outer ring for windmill effect
+        int outerOpposite = (outerPos + HOUR_LEDS/2) % HOUR_LEDS;
+        pixels.setPixelColor(outerOpposite, pixels.Color(255, 255, 200));
+        pixels.setPixelColor((outerOpposite + 1) % HOUR_LEDS, pixels.Color(200, 200, 150));
+        
+        // Inner ring windmill arm (complementary color, offset rotation)
+        int innerPos = (step * 3) % MINUTE_LEDS; // 3 LEDs per step for different speed
+        pixels.setPixelColor(HOUR_LEDS + innerPos, pixels.Color(255, 150, 50)); // Bright orange
+        pixels.setPixelColor(HOUR_LEDS + ((innerPos + 1) % MINUTE_LEDS), pixels.Color(200, 100, 30)); // Trailing glow
+        
+        // Opposite arm on inner ring
+        int innerOpposite = (innerPos + MINUTE_LEDS/2) % MINUTE_LEDS;
+        pixels.setPixelColor(HOUR_LEDS + innerOpposite, pixels.Color(255, 150, 50));
+        pixels.setPixelColor(HOUR_LEDS + ((innerOpposite + 1) % MINUTE_LEDS), pixels.Color(200, 100, 30));
+        
+        pixels.show();
+        delay(stepDelay);
+    }
+    
+    // Final flash of the new hour LED to emphasize the hour change
+    int hour12 = newHour % 12;
+    int hourLED = (hour12 == 0) ? 0 : hour12 * 2;
+    
+    pixels.clear();
+    for (int flash = 0; flash < 3; flash++) {
+        pixels.setPixelColor(hourLED, pixels.Color(255, 255, 255)); // Bright white flash
+        pixels.show();
+        delay(150);
+        pixels.clear();
+        pixels.show();
+        delay(100);
+    }
+    
+    // Brief pause before returning to normal display
+    delay(200);
 }
 
 #ifdef ENABLE_PATTERN_SYSTEM

@@ -10,11 +10,13 @@ enum DisplayPattern {
     PATTERN_BREATHING_RINGS = 1,
     PATTERN_RIPPLE_EFFECT = 2,
     PATTERN_SLOW_SPIRAL = 3,
-    PATTERN_COUNT = 4
+    PATTERN_GENTLE_WAVES = 4,
+    PATTERN_COLOR_DRIFT = 5,
+    PATTERN_COUNT = 6
 };
 
-// For hourly rotation, we'll use just the first two patterns initially
-#define HOURLY_PATTERN_COUNT 2
+// For hourly rotation, we'll use the first four patterns initially
+#define HOURLY_PATTERN_COUNT 4
 
 struct PatternState {
     DisplayPattern currentPattern;
@@ -46,6 +48,8 @@ void displayDefaultComplement();
 void displayBreathingRings();
 void displayRippleEffect();
 void displaySlowSpiral();
+void displayGentleWaves();
+void displayColorDrift();
 void displayQuarterHourEffect();
 void updatePatternSystem();
 #endif
@@ -407,6 +411,57 @@ void displaySlowSpiral() {
     currentHue %= MAX_HUE;
 }
 
+void displayGentleWaves() {
+    // Soft wave-like movement across the rings
+    uint32_t time = millis();
+    float wavePhase = (time / 2500.0); // 2.5 second wave cycle
+    
+    for (int i = 0; i < HOUR_LEDS; i++) {
+        float position = (float)i / HOUR_LEDS * 2.0 * PI;
+        float wave = sin(position + wavePhase) * 0.3 + 0.7; // Gentle wave between 0.4-1.0
+        uint8_t brightness = 6 + (wave * 2); // 6-8 brightness range (respects original max)
+        pixels.setPixelColor(i, Adafruit_NeoPixel::ColorHSV(currentHue, 255, brightness));
+    }
+    
+    // Inner ring with complementary color and offset wave
+    for (int i = 0; i < MINUTE_LEDS; i++) {
+        float position = (float)i / MINUTE_LEDS * 2.0 * PI;
+        float wave = sin(position + wavePhase + 1.0) * 0.3 + 0.7; // Offset wave
+        uint8_t brightness = 90 + (wave * 37); // 90-127 brightness range
+        pixels.setPixelColor(HOUR_LEDS + i, Adafruit_NeoPixel::ColorHSV(currentHue + 32768L, 255, brightness));
+    }
+    
+    // Very slow hue progression for gentle effect
+    currentHue += HUE_STEP / 4;
+    currentHue %= MAX_HUE;
+}
+
+void displayColorDrift() {
+    // Slow, smooth color transitions with subtle brightness variations
+    uint32_t time = millis();
+    float driftPhase = (time / 8000.0); // 8 second color drift cycle
+    
+    // Create smooth color drift across the outer ring
+    for (int i = 0; i < HOUR_LEDS; i++) {
+        float position = (float)i / HOUR_LEDS;
+        uint32_t hue = currentHue + (sin(driftPhase + position * PI) * 8192L); // Gentle hue variation
+        uint8_t brightness = 6 + (sin(driftPhase * 2 + position * 4) * 0.5 + 0.5) * 2; // 6-8 range
+        pixels.setPixelColor(i, Adafruit_NeoPixel::ColorHSV(hue, 255, brightness));
+    }
+    
+    // Inner ring with different drift pattern
+    for (int i = 0; i < MINUTE_LEDS; i++) {
+        float position = (float)i / MINUTE_LEDS;
+        uint32_t hue = (currentHue + 32768L) + (cos(driftPhase * 0.7 + position * PI * 1.5) * 12288L);
+        uint8_t brightness = 100 + (cos(driftPhase * 1.5 + position * 3) * 0.4 + 0.4) * 27; // 100-127 range
+        pixels.setPixelColor(HOUR_LEDS + i, Adafruit_NeoPixel::ColorHSV(hue, 255, brightness));
+    }
+    
+    // Extremely slow hue progression for smooth transitions
+    currentHue += HUE_STEP / 6;
+    currentHue %= MAX_HUE;
+}
+
 void displayQuarterHourEffect() {
     // Brief celebration effect for quarter hours
     uint32_t elapsed = millis() - patternState.quarterHourStartTime;
@@ -491,6 +546,10 @@ void updatePatternSystem() {
     patternState.currentPattern = PATTERN_RIPPLE_EFFECT;
     #elif defined(TEST_SLOW_SPIRAL)
     patternState.currentPattern = PATTERN_SLOW_SPIRAL;
+    #elif defined(TEST_GENTLE_WAVES)
+    patternState.currentPattern = PATTERN_GENTLE_WAVES;
+    #elif defined(TEST_COLOR_DRIFT)
+    patternState.currentPattern = PATTERN_COLOR_DRIFT;
     #endif
     
     // Execute current pattern
@@ -503,6 +562,12 @@ void updatePatternSystem() {
             break;
         case PATTERN_SLOW_SPIRAL:
             displaySlowSpiral();
+            break;
+        case PATTERN_GENTLE_WAVES:
+            displayGentleWaves();
+            break;
+        case PATTERN_COLOR_DRIFT:
+            displayColorDrift();
             break;
         default:
             displayDefaultComplement();

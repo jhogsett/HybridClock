@@ -57,6 +57,8 @@
 // #define TEST_BREATHING_RINGS        // Test breathing pattern immediately
 // #define TEST_RIPPLE_EFFECT          // Test ripple pattern immediately  
 // #define TEST_SLOW_SPIRAL            // Test spiral pattern immediately
+// #define TEST_GENTLE_WAVES           // Test gentle waves pattern immediately
+// #define TEST_COLOR_DRIFT            // Test color drift pattern immediately
 // #define ENABLE_QUARTER_HOUR_EFFECTS // Enable 15/30/45 minute celebrations
 // #define ENABLE_PATTERN_ROTATION     // Cycle through patterns every few minutes
 

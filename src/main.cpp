@@ -348,8 +348,8 @@ void displayBreathingRings() {
     float breathCycle = sin((time / 1000.0) * 0.5) * 0.5 + 0.5; // 4-second breathing cycle
     float breathCycle2 = sin((time / 1000.0) * 0.3 + 1.5) * 0.5 + 0.5; // Offset breathing
     
-    uint8_t brightness1 = 5 + (breathCycle * 45); // 5-50 brightness range (outer ring)
-    uint8_t brightness2 = 30 + (breathCycle2 * 90); // 30-120 brightness range (inner ring)
+    uint8_t brightness1 = 4 + (breathCycle * 4); // 4-8 brightness range (stays visible, respects max 8)
+    uint8_t brightness2 = 60 + (breathCycle2 * 67); // 60-127 brightness range (respects original 127 max)
     
     pixels.fill(Adafruit_NeoPixel::ColorHSV(currentHue, 255, brightness1), 0, HOUR_LEDS);
     pixels.fill(Adafruit_NeoPixel::ColorHSV(currentHue + 32768L, 255, brightness2), HOUR_LEDS, MINUTE_LEDS);

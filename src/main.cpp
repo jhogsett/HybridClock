@@ -170,45 +170,13 @@ void setup() {
     pixels.show();
     delay(2000);
     
-    // Get current time for initial display
+    // Get current time for initial setup
     bool h12Flag = false;
     bool pm = false;
     int initialMinute = rtc.getMinute();
     int initialHour = rtc.getHour(h12Flag, pm);
     lastMinute = initialMinute;
     lastHour = initialHour;
-    
-    // Show proper colorful display immediately after calibration
-    pixels.clear();
-    pixels.fill(Adafruit_NeoPixel::ColorHSV(currentHue, 255, 8), 0, HOUR_LEDS);
-    pixels.fill(Adafruit_NeoPixel::ColorHSV(currentHue + 32768L, 255, 127), HOUR_LEDS, MINUTE_LEDS);
-    
-    // Show hour display
-    int hour12 = initialHour % 12 + 1;
-    for (int i = 1; i < 12; i++) {
-        if (i < hour12) {
-            pixels.setPixelColor(i * 2, pixels.Color(HOUR_COLOR_R, HOUR_COLOR_G, HOUR_COLOR_B));
-        }
-    }
-    if (hour12 == 1) {
-        pixels.setPixelColor(0, pixels.Color(HOUR_COLOR_R, HOUR_COLOR_G, HOUR_COLOR_B));
-    }
-    pixels.show();
-    
-    // Now move to current minute position (with nice display already showing)
-    float targetPosition = initialMinute * (STEPS_PER_REVOLUTION / 60.0);
-    float difference = targetPosition - handPosition;
-    
-    if (abs(difference) > 0.5) {
-        resumeMotor(); // Power up motor before movement
-        int stepsToMove = (int)difference;
-        stepperMotor.step(stepsToMove);
-        handPosition += stepsToMove; // Update by actual steps moved
-        pauseMotor(); // Power down motor after movement
-    }
-    
-    // Ensure motor is powered down when idle
-    pauseMotor();
     
     Serial.println("=== Ready ===");
     
@@ -227,6 +195,21 @@ void setup() {
     
     Serial.println("Windmill hour change animation test complete");
 #endif
+    
+    // Move to current minute position AFTER animation completes
+    float targetPosition = initialMinute * (STEPS_PER_REVOLUTION / 60.0);
+    float difference = targetPosition - handPosition;
+    
+    if (abs(difference) > 0.5) {
+        resumeMotor(); // Power up motor before movement
+        int stepsToMove = (int)difference;
+        stepperMotor.step(stepsToMove);
+        handPosition += stepsToMove; // Update by actual steps moved
+        pauseMotor(); // Power down motor after movement
+    }
+    
+    // Ensure motor is powered down when idle
+    pauseMotor();
 }
 
 void loop() {

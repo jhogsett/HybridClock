@@ -50,7 +50,14 @@
 
 // Test Configuration
 #define TEST_HOUR_CHANGE_ON_STARTUP  // Show hour change animation on startup to demonstrate feature
+// #define TEST_REDUCED_BRIGHTNESS      // Test hour change animation at 50% brightness
 // #define TEST_QUIET_MICRO_CALIBRATION // Test quiet micro-calibration after startup
+
+// Quiet Hours Configuration
+#define ENABLE_QUIET_HOURS           // Enable automatic brightness reduction during quiet hours
+#define QUIET_HOURS_START 22         // 10:00 PM (22:00) - start of quiet hours
+#define QUIET_HOURS_END 6            // 6:00 AM (06:00) - end of quiet hours
+#define QUIET_BRIGHTNESS_PERCENT 50  // 50% brightness during quiet hours
 
 // Display Pattern Configuration
 #define ENABLE_PATTERN_SYSTEM        // Master enable for advanced patterns

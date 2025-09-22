@@ -60,6 +60,12 @@ void showWindmillHourChange(int newHour);
 // Quiet micro-calibration function
 void performQuietMicroCalibration();
 
+#ifdef ENABLE_QUIET_HOURS
+// Quiet hours brightness management
+bool isQuietHours(int hour);
+void updateQuietHoursBrightness();
+#endif
+
 // Motor power management functions
 bool motorPins[4] = {LOW, LOW, LOW, LOW};
 
@@ -85,7 +91,7 @@ void setup() {
     
     Wire.begin();
     pixels.begin();
-    pixels.setBrightness(DEFAULT_BRIGHTNESS);
+    pixels.setBrightness(DEFAULT_BRIGHTNESS); // Start with default, will be updated by quiet hours check
     pixels.clear();
     pixels.show();
     
@@ -183,6 +189,11 @@ void setup() {
     
     Serial.println("=== Ready ===");
     
+    // Set initial brightness based on current time
+#ifdef ENABLE_QUIET_HOURS
+    updateQuietHoursBrightness();
+#endif
+
 #ifdef TEST_HOUR_CHANGE_ON_STARTUP
     // TEST: Trigger hour change animation immediately after calibration
     Serial.println("Testing hour change animation...");
@@ -284,6 +295,11 @@ void loop() {
     // Update lastHour when actual hour changes (for normal operation)
     if (hour != lastHour && minute != 59) {
         lastHour = hour;
+        
+        // Check if brightness needs to be adjusted due to quiet hours transition
+#ifdef ENABLE_QUIET_HOURS
+        updateQuietHoursBrightness();
+#endif
     }
     
     // Update LED display
@@ -757,6 +773,45 @@ void updatePatternSystem() {
         default:
             displayDefaultComplement();
             break;
+    }
+}
+#endif
+
+#ifdef ENABLE_QUIET_HOURS
+// Check if current hour is within quiet hours
+bool isQuietHours(int hour) {
+    // Handle wraparound case where quiet hours cross midnight
+    if (QUIET_HOURS_START > QUIET_HOURS_END) {
+        // Quiet hours cross midnight (e.g., 22:00 to 6:00)
+        return (hour >= QUIET_HOURS_START || hour < QUIET_HOURS_END);
+    } else {
+        // Quiet hours within same day (e.g., 1:00 to 5:00)
+        return (hour >= QUIET_HOURS_START && hour < QUIET_HOURS_END);
+    }
+}
+
+// Update NeoPixel brightness based on current time
+void updateQuietHoursBrightness() {
+    bool h12Flag, pm;
+    int currentHour = rtc.getHour(h12Flag, pm);
+    
+    uint8_t targetBrightness;
+    if (isQuietHours(currentHour)) {
+        targetBrightness = (DEFAULT_BRIGHTNESS * QUIET_BRIGHTNESS_PERCENT) / 100;
+    } else {
+        targetBrightness = DEFAULT_BRIGHTNESS;
+    }
+    
+    // Only change brightness if it's different from current setting
+    if (pixels.getBrightness() != targetBrightness) {
+        pixels.setBrightness(targetBrightness);
+        Serial.print("Brightness updated to ");
+        Serial.print(targetBrightness);
+        Serial.print(" (");
+        Serial.print(isQuietHours(currentHour) ? "Quiet" : "Active");
+        Serial.print(" hours at ");
+        Serial.print(currentHour);
+        Serial.println(":00)");
     }
 }
 #endif

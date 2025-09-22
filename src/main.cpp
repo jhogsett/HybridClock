@@ -273,6 +273,11 @@ void loop() {
     if (minute == 59 && (second == 58 || second == 57)) { // Start at second 57 to ensure 2-second animation completes at top of hour
         int nextHour = (hour + 1) % 24;
         if (nextHour != lastHour) { // Only if we haven't already shown this transition
+            Serial.print("Hour change detected (windmill): ");
+            Serial.print(lastHour);
+            Serial.print(" -> ");
+            Serial.println(nextHour);
+            
             // Eye-catching rainbow animation for upcoming new hour
             showWindmillHourChange(nextHour);
             
@@ -288,12 +293,21 @@ void loop() {
                 pauseMotor();
             }
             
+            // Check if brightness needs to be adjusted due to quiet hours transition
+#ifdef ENABLE_QUIET_HOURS
+            updateQuietHoursBrightness();
+#endif
+            
             lastHour = nextHour; // Update to prevent re-triggering
         }
     }
     
     // Update lastHour when actual hour changes (for normal operation)
     if (hour != lastHour && minute != 59) {
+        Serial.print("Hour change detected (normal): ");
+        Serial.print(lastHour);
+        Serial.print(" -> ");
+        Serial.println(hour);
         lastHour = hour;
         
         // Check if brightness needs to be adjusted due to quiet hours transition
@@ -614,12 +628,30 @@ void displayGentleWaves() {
     uint32_t time = millis();
     float wavePhase = (time / 2500.0); // 2.5 second wave cycle
     
+    // Adjust minimum brightness based on quiet hours
+    uint8_t outerMinBrightness = 6;
+    uint8_t outerMaxBrightness = 8;
+    uint8_t innerMinBrightness = 70;
+    uint8_t innerMaxBrightness = 127;
+    
+#ifdef ENABLE_QUIET_HOURS
+    bool h12Flag, pm;
+    int currentHour = rtc.getHour(h12Flag, pm);
+    if (isQuietHours(currentHour)) {
+        // In quiet mode, increase minimum brightness to ensure visibility
+        outerMinBrightness = 12;  // Double the minimum for visibility
+        outerMaxBrightness = 16;  // Keep proportional
+        innerMinBrightness = 80;  // Slight increase for inner ring
+        innerMaxBrightness = 127; // Keep same max
+    }
+#endif
+    
     for (int i = 0; i < HOUR_LEDS; i++) {
         float position = (float)i / HOUR_LEDS * 2.0 * PI;
         float wave = sin(position + wavePhase) * 0.5 + 0.5; // Smoother wave between 0.0-1.0
-        uint8_t brightness = 6 + (wave * 2); // 6-8 brightness range (respects original max)
+        uint8_t brightness = outerMinBrightness + (wave * (outerMaxBrightness - outerMinBrightness));
         // Smooth the brightness transitions
-        brightness = constrain(brightness, 6, 8);
+        brightness = constrain(brightness, outerMinBrightness, outerMaxBrightness);
         pixels.setPixelColor(i, Adafruit_NeoPixel::ColorHSV(currentHue, 255, brightness));
     }
     
@@ -627,8 +659,8 @@ void displayGentleWaves() {
     for (int i = 0; i < MINUTE_LEDS; i++) {
         float position = (float)i / MINUTE_LEDS * 2.0 * PI;
         float wave = sin(position + wavePhase + PI) * 0.4 + 0.6; // Opposite phase, more variation
-        uint8_t brightness = 70 + (wave * 57); // 70-127 brightness range (more apparent changes)
-        brightness = constrain(brightness, 70, 127);
+        uint8_t brightness = innerMinBrightness + (wave * (innerMaxBrightness - innerMinBrightness));
+        brightness = constrain(brightness, innerMinBrightness, innerMaxBrightness);
         pixels.setPixelColor(HOUR_LEDS + i, Adafruit_NeoPixel::ColorHSV(currentHue + 32768L, 255, brightness));
     }
     
@@ -642,11 +674,29 @@ void displayColorDrift() {
     uint32_t time = millis();
     float driftPhase = (time / 8000.0); // 8 second color drift cycle
     
+    // Adjust minimum brightness based on quiet hours
+    uint8_t outerMinBrightness = 6;
+    uint8_t outerMaxBrightness = 8;
+    uint8_t innerMinBrightness = 100;
+    uint8_t innerMaxBrightness = 127;
+    
+#ifdef ENABLE_QUIET_HOURS
+    bool h12Flag, pm;
+    int currentHour = rtc.getHour(h12Flag, pm);
+    if (isQuietHours(currentHour)) {
+        // In quiet mode, increase minimum brightness to ensure visibility
+        outerMinBrightness = 12;  // Double the minimum for visibility
+        outerMaxBrightness = 16;  // Keep proportional
+        innerMinBrightness = 110; // Slight increase for inner ring
+        innerMaxBrightness = 127; // Keep same max
+    }
+#endif
+    
     // Create smooth color drift across the outer ring
     for (int i = 0; i < HOUR_LEDS; i++) {
         float position = (float)i / HOUR_LEDS;
         uint32_t hue = currentHue + (sin(driftPhase + position * PI) * 8192L); // Gentle hue variation
-        uint8_t brightness = 6 + (sin(driftPhase * 2 + position * 4) * 0.5 + 0.5) * 2; // 6-8 range
+        uint8_t brightness = outerMinBrightness + (sin(driftPhase * 2 + position * 4) * 0.5 + 0.5) * (outerMaxBrightness - outerMinBrightness);
         pixels.setPixelColor(i, Adafruit_NeoPixel::ColorHSV(hue, 255, brightness));
     }
     
@@ -654,7 +704,7 @@ void displayColorDrift() {
     for (int i = 0; i < MINUTE_LEDS; i++) {
         float position = (float)i / MINUTE_LEDS;
         uint32_t hue = (currentHue + 32768L) + (cos(driftPhase * 0.7 + position * PI * 1.5) * 12288L);
-        uint8_t brightness = 100 + (cos(driftPhase * 1.5 + position * 3) * 0.4 + 0.4) * 27; // 100-127 range
+        uint8_t brightness = innerMinBrightness + (cos(driftPhase * 1.5 + position * 3) * 0.4 + 0.4) * (innerMaxBrightness - innerMinBrightness);
         pixels.setPixelColor(HOUR_LEDS + i, Adafruit_NeoPixel::ColorHSV(hue, 255, brightness));
     }
     
@@ -812,6 +862,16 @@ void updateQuietHoursBrightness() {
         Serial.print(" hours at ");
         Serial.print(currentHour);
         Serial.println(":00)");
+    } else {
+        // Debug: Log when we check but don't change brightness
+        Serial.print("Brightness check: ");
+        Serial.print(targetBrightness);
+        Serial.print(" (");
+        Serial.print(isQuietHours(currentHour) ? "Quiet" : "Active");
+        Serial.print(" hours at ");
+        Serial.print(currentHour);
+        Serial.print(":00) - No change needed");
+        Serial.println();
     }
 }
 #endif

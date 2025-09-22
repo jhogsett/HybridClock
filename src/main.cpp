@@ -373,7 +373,7 @@ void showWindmillHourChange(int newHour) {
         for (int i = 0; i < HOUR_LEDS; i++) {
             // Each LED gets a different hue based on its position around the ring
             uint32_t positionHue = (i * 65535L / HOUR_LEDS); // Rainbow spread across ring
-            uint32_t hue = (positionHue + rotationOffset) % 65536L; // Rotate clockwise (ADD offset)
+            uint32_t hue = (positionHue - rotationOffset + 65536L) % 65536L; // Rotate clockwise (SUBTRACT offset)
             uint8_t brightness = 35; // Bright for special hour change animation
             pixels.setPixelColor(i, Adafruit_NeoPixel::ColorHSV(hue, 255, brightness));
         }
@@ -382,7 +382,7 @@ void showWindmillHourChange(int newHour) {
         for (int i = 0; i < MINUTE_LEDS; i++) {
             // Each LED gets a different hue based on its position around the ring
             uint32_t positionHue = (i * 65535L / MINUTE_LEDS); // Rainbow spread across ring
-            uint32_t hue = (positionHue + (rotationOffset / 2)) % 65536L; // Clockwise at half speed (ADD offset)
+            uint32_t hue = (positionHue - (rotationOffset / 2) + 65536L) % 65536L; // Clockwise at half speed (SUBTRACT offset)
             uint8_t brightness = 80; // Brighter for inner ring visibility
             pixels.setPixelColor(HOUR_LEDS + i, Adafruit_NeoPixel::ColorHSV(hue, 255, brightness));
         }

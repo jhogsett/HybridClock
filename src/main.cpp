@@ -373,8 +373,8 @@ void showWindmillHourChange(int newHour) {
         for (int i = 0; i < HOUR_LEDS; i++) {
             // Each LED gets a different hue based on its position around the ring
             uint32_t positionHue = (i * 65535L / HOUR_LEDS); // Rainbow spread across ring
-            uint32_t hue = (positionHue - rotationOffset + 65536L) % 65536L; // Rotate clockwise (subtract offset)
-            uint8_t brightness = 35; // Steady brightness for clear rainbow
+            uint32_t hue = (positionHue + rotationOffset) % 65536L; // Rotate clockwise (ADD offset)
+            uint8_t brightness = 35; // Bright for special hour change animation
             pixels.setPixelColor(i, Adafruit_NeoPixel::ColorHSV(hue, 255, brightness));
         }
         
@@ -382,7 +382,7 @@ void showWindmillHourChange(int newHour) {
         for (int i = 0; i < MINUTE_LEDS; i++) {
             // Each LED gets a different hue based on its position around the ring
             uint32_t positionHue = (i * 65535L / MINUTE_LEDS); // Rainbow spread across ring
-            uint32_t hue = (positionHue - (rotationOffset / 2) + 65536L) % 65536L; // Clockwise at half speed
+            uint32_t hue = (positionHue + (rotationOffset / 2)) % 65536L; // Clockwise at half speed (ADD offset)
             uint8_t brightness = 80; // Brighter for inner ring visibility
             pixels.setPixelColor(HOUR_LEDS + i, Adafruit_NeoPixel::ColorHSV(hue, 255, brightness));
         }
@@ -553,7 +553,7 @@ void displayRippleEffect() {
     for (int i = 0; i < HOUR_LEDS; i++) {
         float distance = min(i, HOUR_LEDS - i); // Distance from position 0 (12 o'clock)
         float ripple = sin(ripplePhase - distance * 0.8) * 0.5 + 0.5;
-        uint8_t brightness = 10 + (ripple * 40);
+        uint8_t brightness = 4 + (ripple * 4); // 4-8 brightness range (respects outer ring max)
         pixels.setPixelColor(i, Adafruit_NeoPixel::ColorHSV(currentHue, 255, brightness));
     }
     
@@ -561,7 +561,7 @@ void displayRippleEffect() {
     for (int i = 0; i < MINUTE_LEDS; i++) {
         float distance = min(i, MINUTE_LEDS - i);
         float ripple = sin(ripplePhase - distance * 1.2 + 1.0) * 0.5 + 0.5;
-        uint8_t brightness = 50 + (ripple * 80);
+        uint8_t brightness = 50 + (ripple * 80); // 50-130 brightness range (inner ring can be brighter)
         pixels.setPixelColor(HOUR_LEDS + i, Adafruit_NeoPixel::ColorHSV(currentHue + 32768L, 255, brightness));
     }
     
@@ -578,14 +578,14 @@ void displaySlowSpiral() {
     for (int i = 0; i < HOUR_LEDS; i++) {
         float angle = (i * 2.0 * PI / HOUR_LEDS) + spiralPhase1;
         uint32_t hue = currentHue + (sin(angle) * 16384L); // Hue varies with position
-        uint8_t brightness = 20 + (cos(angle) * 30 + 30);
+        uint8_t brightness = 4 + (cos(angle) * 0.5 + 0.5) * 4; // 4-8 brightness range (respects outer ring max)
         pixels.setPixelColor(i, Adafruit_NeoPixel::ColorHSV(hue, 255, brightness));
     }
     
     for (int i = 0; i < MINUTE_LEDS; i++) {
         float angle = (i * 2.0 * PI / MINUTE_LEDS) + spiralPhase2;
         uint32_t hue = (currentHue + 32768L) + (sin(angle) * 16384L);
-        uint8_t brightness = 60 + (cos(angle) * 40 + 40);
+        uint8_t brightness = 60 + (cos(angle) * 40 + 40); // 60-140 brightness range (inner ring can be brighter)
         pixels.setPixelColor(HOUR_LEDS + i, Adafruit_NeoPixel::ColorHSV(hue, 255, brightness));
     }
     
@@ -658,10 +658,10 @@ void displayQuarterHourEffect() {
     }
     
     // Gentle bloom effect that spreads outward
-    float bloomIntensity = sin(progress * PI) * 200; // Peak at middle of effect
+    float bloomIntensity = sin(progress * PI) * 200; // Bright bloom for special quarter-hour celebration
     
     for (int i = 0; i < TOTAL_LEDS; i++) {
-        uint8_t brightness = 20 + bloomIntensity;
+        uint8_t brightness = 20 + bloomIntensity; // Can be bright - this is a special animation
         brightness = constrain(brightness, 20, 220);
         pixels.setPixelColor(i, Adafruit_NeoPixel::ColorHSV(currentHue, 180, brightness));
     }

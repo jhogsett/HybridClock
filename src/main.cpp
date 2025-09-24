@@ -273,7 +273,16 @@ void loop() {
     if (minute == 59 && (second == 58 || second == 57)) { // Start at second 57 to ensure 2-second animation completes at top of hour
         int nextHour = (hour + 1) % 24;
         if (nextHour != lastHour) { // Only if we haven't already shown this transition
-            Serial.print("Hour change detected (windmill): ");
+            Serial.print("[");
+            if (hour < 10) Serial.print("0");
+            Serial.print(hour);
+            Serial.print(":");
+            if (minute < 10) Serial.print("0");
+            Serial.print(minute);
+            Serial.print(":");
+            if (second < 10) Serial.print("0");
+            Serial.print(second);
+            Serial.print("] HOUR TRANSITION (windmill): ");
             Serial.print(lastHour);
             Serial.print(" -> ");
             Serial.println(nextHour);
@@ -294,8 +303,41 @@ void loop() {
             }
             
             // Check if brightness needs to be adjusted due to quiet hours transition
+            // Use nextHour since we're transitioning TO that hour
 #ifdef ENABLE_QUIET_HOURS
-            updateQuietHoursBrightness();
+            bool h12Flag_brightness, pm_brightness;
+            int currentHour_brightness = rtc.getHour(h12Flag_brightness, pm_brightness);
+            
+            uint8_t targetBrightness;
+            if (isQuietHours(nextHour)) {  // Use nextHour, not currentHour_brightness
+                targetBrightness = (DEFAULT_BRIGHTNESS * QUIET_BRIGHTNESS_PERCENT) / 100;
+            } else {
+                targetBrightness = DEFAULT_BRIGHTNESS;
+            }
+            
+            // Only change brightness if it's different from current setting
+            if (pixels.getBrightness() != targetBrightness) {
+                pixels.setBrightness(targetBrightness);
+                
+                Serial.print("[");
+                if (hour < 10) Serial.print("0");
+                Serial.print(hour);
+                Serial.print(":");
+                if (minute < 10) Serial.print("0");
+                Serial.print(minute);
+                Serial.print(":");
+                if (second < 10) Serial.print("0");
+                Serial.print(second);
+                Serial.print("] BRIGHTNESS CHANGE (windmill): ");
+                Serial.print(pixels.getBrightness());
+                Serial.print(" -> ");
+                Serial.print(targetBrightness);
+                Serial.print(" (");
+                Serial.print(isQuietHours(nextHour) ? "QUIET" : "ACTIVE");
+                Serial.print(" mode for hour ");
+                Serial.print(nextHour);
+                Serial.println(")");
+            }
 #endif
             
             lastHour = nextHour; // Update to prevent re-triggering
@@ -304,7 +346,16 @@ void loop() {
     
     // Update lastHour when actual hour changes (for normal operation)
     if (hour != lastHour && minute != 59) {
-        Serial.print("Hour change detected (normal): ");
+        Serial.print("[");
+        if (hour < 10) Serial.print("0");
+        Serial.print(hour);
+        Serial.print(":");
+        if (minute < 10) Serial.print("0");
+        Serial.print(minute);
+        Serial.print(":");
+        if (second < 10) Serial.print("0");
+        Serial.print(second);
+        Serial.print("] HOUR TRANSITION (normal): ");
         Serial.print(lastHour);
         Serial.print(" -> ");
         Serial.println(hour);
@@ -643,6 +694,9 @@ void displayGentleWaves() {
         outerMaxBrightness = 16;  // Keep proportional
         innerMinBrightness = 80;  // Slight increase for inner ring
         innerMaxBrightness = 127; // Keep same max
+        Serial.println("PATTERN: Gentle Waves - QUIET mode brightness adjustment applied");
+    } else {
+        Serial.println("PATTERN: Gentle Waves - ACTIVE mode (normal brightness)");
     }
 #endif
     
@@ -689,6 +743,9 @@ void displayColorDrift() {
         outerMaxBrightness = 16;  // Keep proportional
         innerMinBrightness = 110; // Slight increase for inner ring
         innerMaxBrightness = 127; // Keep same max
+        Serial.println("PATTERN: Color Drift - QUIET mode brightness adjustment applied");
+    } else {
+        Serial.println("PATTERN: Color Drift - ACTIVE mode (normal brightness)");
     }
 #endif
     
@@ -824,6 +881,37 @@ void updatePatternSystem() {
             displayDefaultComplement();
             break;
     }
+    
+    // Report current pattern every minute for debugging
+    static uint32_t lastPatternReport = 0;
+    if (currentTime - lastPatternReport > 60000) {
+        lastPatternReport = currentTime;
+        
+        // Get current time for timestamp
+        bool h12Flag, pm;
+        int currentHour = rtc.getHour(h12Flag, pm);
+        int currentMinute = rtc.getMinute();
+        
+        Serial.print("[");
+        if (currentHour < 10) Serial.print("0");
+        Serial.print(currentHour);
+        Serial.print(":");
+        if (currentMinute < 10) Serial.print("0");
+        Serial.print(currentMinute);
+        Serial.print("] CURRENT PATTERN: ");
+        Serial.print(patternState.currentPattern);
+        Serial.print(" (");
+        switch (patternState.currentPattern) {
+            case PATTERN_BREATHING_RINGS: Serial.print("Breathing Rings"); break;
+            case PATTERN_RIPPLE_EFFECT: Serial.print("Ripple Effect"); break;
+            case PATTERN_SLOW_SPIRAL: Serial.print("Slow Spiral"); break;
+            case PATTERN_GENTLE_WAVES: Serial.print("Gentle Waves"); break;
+            case PATTERN_COLOR_DRIFT: Serial.print("Color Drift"); break;
+            default: Serial.print("Default Complement"); break;
+        }
+        Serial.print("), Global brightness: ");
+        Serial.println(pixels.getBrightness());
+    }
 }
 #endif
 
@@ -855,23 +943,44 @@ void updateQuietHoursBrightness() {
     // Only change brightness if it's different from current setting
     if (pixels.getBrightness() != targetBrightness) {
         pixels.setBrightness(targetBrightness);
-        Serial.print("Brightness updated to ");
+        
+        // Get current time for timestamp
+        bool h12Flag, pm;
+        int timestampHour = rtc.getHour(h12Flag, pm);
+        int timestampMinute = rtc.getMinute();
+        
+        Serial.print("[");
+        if (timestampHour < 10) Serial.print("0");
+        Serial.print(timestampHour);
+        Serial.print(":");
+        if (timestampMinute < 10) Serial.print("0");
+        Serial.print(timestampMinute);
+        Serial.print("] BRIGHTNESS CHANGE: ");
+        Serial.print(pixels.getBrightness());
+        Serial.print(" -> ");
         Serial.print(targetBrightness);
         Serial.print(" (");
-        Serial.print(isQuietHours(currentHour) ? "Quiet" : "Active");
-        Serial.print(" hours at ");
+        Serial.print(isQuietHours(currentHour) ? "QUIET" : "ACTIVE");
+        Serial.print(" mode at ");
         Serial.print(currentHour);
         Serial.println(":00)");
     } else {
-        // Debug: Log when we check but don't change brightness
-        Serial.print("Brightness check: ");
+        Serial.print("[");
+        bool h12Flag, pm;
+        int timestampHour = rtc.getHour(h12Flag, pm);
+        int timestampMinute = rtc.getMinute();
+        if (timestampHour < 10) Serial.print("0");
+        Serial.print(timestampHour);
+        Serial.print(":");
+        if (timestampMinute < 10) Serial.print("0");
+        Serial.print(timestampMinute);
+        Serial.print("] BRIGHTNESS CHECK: Already at ");
         Serial.print(targetBrightness);
         Serial.print(" (");
-        Serial.print(isQuietHours(currentHour) ? "Quiet" : "Active");
-        Serial.print(" hours at ");
+        Serial.print(isQuietHours(currentHour) ? "QUIET" : "ACTIVE");
+        Serial.print(" mode at ");
         Serial.print(currentHour);
-        Serial.print(":00) - No change needed");
-        Serial.println();
+        Serial.println(":00)");
     }
 }
 #endif

@@ -7,8 +7,8 @@
  #include <avr/power.h> // Required for 16 MHz Adafruit Trinket
 #endif
 
-#define BLACK_DEVICE 
-// #define WHITE_DEVICE 
+// #define BLACK_DEVICE 
+#define WHITE_DEVICE 
 
 #include <Wire.h>
 #include <DS3231-RTC.h> // https://github.com/hasenradball/DS3231-RTC

@@ -615,8 +615,29 @@ void displayBreathingRings() {
     float breathCycle = sin((time / 1000.0) * 0.5) * 0.5 + 0.5; // 4-second breathing cycle
     float breathCycle2 = sin((time / 1000.0) * 0.3 + 1.5) * 0.5 + 0.5; // Offset breathing
     
-    uint8_t brightness1 = 4 + (breathCycle * 4); // 4-8 brightness range (stays visible, respects max 8)
-    uint8_t brightness2 = 60 + (breathCycle2 * 67); // 60-127 brightness range (respects original 127 max)
+    // Adjust brightness based on quiet hours
+    uint8_t outerMinBrightness = 4;
+    uint8_t outerMaxBrightness = 8;
+    uint8_t innerMinBrightness = 60;
+    uint8_t innerMaxBrightness = 127;
+    
+#ifdef ENABLE_QUIET_HOURS
+    bool h12Flag, pm;
+    int currentHour = rtc.getHour(h12Flag, pm);
+    if (isQuietHours(currentHour)) {
+        // In quiet mode, increase minimum brightness to ensure visibility
+        outerMinBrightness = 10;  // More than double for visibility
+        outerMaxBrightness = 16;  // Keep proportional
+        innerMinBrightness = 70;  // Slight increase for inner ring
+        innerMaxBrightness = 127; // Keep same max
+        Serial.println("PATTERN: Breathing Rings - QUIET mode brightness adjustment applied");
+    } else {
+        Serial.println("PATTERN: Breathing Rings - ACTIVE mode (normal brightness)");
+    }
+#endif
+    
+    uint8_t brightness1 = outerMinBrightness + (breathCycle * (outerMaxBrightness - outerMinBrightness));
+    uint8_t brightness2 = innerMinBrightness + (breathCycle2 * (innerMaxBrightness - innerMinBrightness));
     
     pixels.fill(Adafruit_NeoPixel::ColorHSV(currentHue, 255, brightness1), 0, HOUR_LEDS);
     pixels.fill(Adafruit_NeoPixel::ColorHSV(currentHue + 32768L, 255, brightness2), HOUR_LEDS, MINUTE_LEDS);
@@ -631,10 +652,31 @@ void displayRippleEffect() {
     uint32_t time = millis();
     float ripplePhase = (time / 200.0); // Ripple speed
     
+    // Adjust brightness based on quiet hours
+    uint8_t outerMinBrightness = 4;
+    uint8_t outerMaxBrightness = 8;
+    uint8_t innerMinBrightness = 50;
+    uint8_t innerMaxBrightness = 130;
+    
+#ifdef ENABLE_QUIET_HOURS
+    bool h12Flag, pm;
+    int currentHour = rtc.getHour(h12Flag, pm);
+    if (isQuietHours(currentHour)) {
+        // In quiet mode, increase minimum brightness to ensure visibility
+        outerMinBrightness = 10;  // More than double for visibility
+        outerMaxBrightness = 16;  // Keep proportional
+        innerMinBrightness = 60;  // Slight increase for inner ring
+        innerMaxBrightness = 130; // Keep same max
+        Serial.println("PATTERN: Ripple Effect - QUIET mode brightness adjustment applied");
+    } else {
+        Serial.println("PATTERN: Ripple Effect - ACTIVE mode (normal brightness)");
+    }
+#endif
+    
     for (int i = 0; i < HOUR_LEDS; i++) {
         float distance = min(i, HOUR_LEDS - i); // Distance from position 0 (12 o'clock)
         float ripple = sin(ripplePhase - distance * 0.8) * 0.5 + 0.5;
-        uint8_t brightness = 4 + (ripple * 4); // 4-8 brightness range (respects outer ring max)
+        uint8_t brightness = outerMinBrightness + (ripple * (outerMaxBrightness - outerMinBrightness));
         pixels.setPixelColor(i, Adafruit_NeoPixel::ColorHSV(currentHue, 255, brightness));
     }
     
@@ -642,7 +684,7 @@ void displayRippleEffect() {
     for (int i = 0; i < MINUTE_LEDS; i++) {
         float distance = min(i, MINUTE_LEDS - i);
         float ripple = sin(ripplePhase - distance * 1.2 + 1.0) * 0.5 + 0.5;
-        uint8_t brightness = 50 + (ripple * 80); // 50-130 brightness range (inner ring can be brighter)
+        uint8_t brightness = innerMinBrightness + (ripple * (innerMaxBrightness - innerMinBrightness));
         pixels.setPixelColor(HOUR_LEDS + i, Adafruit_NeoPixel::ColorHSV(currentHue + 32768L, 255, brightness));
     }
     
@@ -656,17 +698,38 @@ void displaySlowSpiral() {
     float spiralPhase1 = (time / 3000.0); // Outer ring: 3 second rotation
     float spiralPhase2 = (time / 2000.0); // Inner ring: 2 second rotation (different speed)
     
+    // Adjust minimum brightness based on quiet hours
+    uint8_t outerMinBrightness = 4;
+    uint8_t outerMaxBrightness = 8;
+    uint8_t innerMinBrightness = 60;
+    uint8_t innerMaxBrightness = 100;
+    
+#ifdef ENABLE_QUIET_HOURS
+    bool h12Flag, pm;
+    int currentHour = rtc.getHour(h12Flag, pm);
+    if (isQuietHours(currentHour)) {
+        // In quiet mode, increase minimum brightness to ensure visibility
+        outerMinBrightness = 10;  // More than double the minimum for visibility
+        outerMaxBrightness = 16;  // Keep proportional
+        innerMinBrightness = 70;  // Slight increase for inner ring
+        innerMaxBrightness = 100; // Keep same max
+        Serial.println("PATTERN: Slow Spiral - QUIET mode brightness adjustment applied");
+    } else {
+        Serial.println("PATTERN: Slow Spiral - ACTIVE mode (normal brightness)");
+    }
+#endif
+    
     for (int i = 0; i < HOUR_LEDS; i++) {
-        float angle = (i * 2.0 * PI / HOUR_LEDS) + spiralPhase1;
+        float angle = (i * 2.0 * PI / HOUR_LEDS) - spiralPhase1; // SUBTRACT for clockwise rotation
         uint32_t hue = currentHue + (sin(angle) * 16384L); // Hue varies with position
-        uint8_t brightness = 4 + (cos(angle) * 0.5 + 0.5) * 4; // 4-8 brightness range (respects outer ring max)
+        uint8_t brightness = outerMinBrightness + (cos(angle) * 0.5 + 0.5) * (outerMaxBrightness - outerMinBrightness);
         pixels.setPixelColor(i, Adafruit_NeoPixel::ColorHSV(hue, 255, brightness));
     }
     
     for (int i = 0; i < MINUTE_LEDS; i++) {
-        float angle = (i * 2.0 * PI / MINUTE_LEDS) + spiralPhase2;
+        float angle = (i * 2.0 * PI / MINUTE_LEDS) - spiralPhase2; // SUBTRACT for clockwise rotation
         uint32_t hue = (currentHue + 32768L) + (sin(angle) * 16384L);
-        uint8_t brightness = 60 + (cos(angle) * 40 + 40); // 60-140 brightness range (inner ring can be brighter)
+        uint8_t brightness = innerMinBrightness + (cos(angle) * 0.4 + 0.4) * (innerMaxBrightness - innerMinBrightness);
         pixels.setPixelColor(HOUR_LEDS + i, Adafruit_NeoPixel::ColorHSV(hue, 255, brightness));
     }
     

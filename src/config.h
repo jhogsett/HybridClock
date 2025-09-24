@@ -8,13 +8,13 @@
 #define FIRST_MOTOR_PIN 14
 
 // Device-specific calibration
-// #define BLACK_DEVICE 
-#define WHITE_DEVICE 
+#define BLACK_DEVICE 
+// #define WHITE_DEVICE 
 
 #if defined(BLACK_DEVICE)
   #define CENTERING_ADJUSTMENT 9
 #elif defined(WHITE_DEVICE)
-  #define CENTERING_ADJUSTMENT 6
+  #define CENTERING_ADJUSTMENT 3
 #else
   #define CENTERING_ADJUSTMENT 0
 #endif

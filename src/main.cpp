@@ -630,9 +630,13 @@ void displayBreathingRings() {
         outerMaxBrightness = 16;  // Keep proportional
         innerMinBrightness = 70;  // Slight increase for inner ring
         innerMaxBrightness = 127; // Keep same max
-        Serial.println("PATTERN: Breathing Rings - QUIET mode brightness adjustment applied");
-    } else {
-        Serial.println("PATTERN: Breathing Rings - ACTIVE mode (normal brightness)");
+        
+        // Only log once per minute to avoid spam
+        static uint32_t lastBreathingLog = 0;
+        if (millis() - lastBreathingLog > 60000) {
+            lastBreathingLog = millis();
+            Serial.println("PATTERN: Breathing Rings - QUIET mode brightness adjustment applied");
+        }
     }
 #endif
     
@@ -667,9 +671,13 @@ void displayRippleEffect() {
         outerMaxBrightness = 16;  // Keep proportional
         innerMinBrightness = 60;  // Slight increase for inner ring
         innerMaxBrightness = 130; // Keep same max
-        Serial.println("PATTERN: Ripple Effect - QUIET mode brightness adjustment applied");
-    } else {
-        Serial.println("PATTERN: Ripple Effect - ACTIVE mode (normal brightness)");
+        
+        // Only log once per minute to avoid spam
+        static uint32_t lastRippleLog = 0;
+        if (millis() - lastRippleLog > 60000) {
+            lastRippleLog = millis();
+            Serial.println("PATTERN: Ripple Effect - QUIET mode brightness adjustment applied");
+        }
     }
 #endif
     
@@ -713,9 +721,13 @@ void displaySlowSpiral() {
         outerMaxBrightness = 16;  // Keep proportional
         innerMinBrightness = 70;  // Slight increase for inner ring
         innerMaxBrightness = 100; // Keep same max
-        Serial.println("PATTERN: Slow Spiral - QUIET mode brightness adjustment applied");
-    } else {
-        Serial.println("PATTERN: Slow Spiral - ACTIVE mode (normal brightness)");
+        
+        // Only log once per minute to avoid spam
+        static uint32_t lastSpiralLog = 0;
+        if (millis() - lastSpiralLog > 60000) {
+            lastSpiralLog = millis();
+            Serial.println("PATTERN: Slow Spiral - QUIET mode brightness adjustment applied");
+        }
     }
 #endif
     
@@ -757,9 +769,13 @@ void displayGentleWaves() {
         outerMaxBrightness = 16;  // Keep proportional
         innerMinBrightness = 80;  // Slight increase for inner ring
         innerMaxBrightness = 127; // Keep same max
-        Serial.println("PATTERN: Gentle Waves - QUIET mode brightness adjustment applied");
-    } else {
-        Serial.println("PATTERN: Gentle Waves - ACTIVE mode (normal brightness)");
+        
+        // Only log once per minute to avoid spam
+        static uint32_t lastWavesLog = 0;
+        if (millis() - lastWavesLog > 60000) {
+            lastWavesLog = millis();
+            Serial.println("PATTERN: Gentle Waves - QUIET mode brightness adjustment applied");
+        }
     }
 #endif
     
@@ -806,9 +822,13 @@ void displayColorDrift() {
         outerMaxBrightness = 16;  // Keep proportional
         innerMinBrightness = 110; // Slight increase for inner ring
         innerMaxBrightness = 127; // Keep same max
-        Serial.println("PATTERN: Color Drift - QUIET mode brightness adjustment applied");
-    } else {
-        Serial.println("PATTERN: Color Drift - ACTIVE mode (normal brightness)");
+        
+        // Only log once per minute to avoid spam
+        static uint32_t lastDriftLog = 0;
+        if (millis() - lastDriftLog > 60000) {
+            lastDriftLog = millis();
+            Serial.println("PATTERN: Color Drift - QUIET mode brightness adjustment applied");
+        }
     }
 #endif
     

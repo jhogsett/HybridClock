@@ -1,18 +1,20 @@
 #include "Clock.h"
 
-Clock::Clock(int stepsPerRev, int motorPin1, int motorPin2, int motorPin3, int motorPin4,
+Clock::Clock(int stepsPerRev, int firstMotorPin,
              int sensorPin, int neopixelPin, int hourLeds, int minuteLeds,
-             uint8_t brightness, int motorSpeed)
-    : clockMotor(stepsPerRev, motorPin1, motorPin2, motorPin3, motorPin4, sensorPin, motorSpeed)
+             uint8_t brightness, int motorSpeed, int rtcCheckDelay, bool verboseLogging)
+    : clockMotor(stepsPerRev, firstMotorPin, firstMotorPin+1, firstMotorPin+2, firstMotorPin+3, sensorPin, motorSpeed, verboseLogging)
     , clockDisplay(neopixelPin, hourLeds, minuteLeds, brightness)
     , externalRTC(nullptr)
     , usingExternalRTC(false)
-    , centeringAdjustment(CENTERING_ADJUSTMENT)
-    , slowDelay(SLOW_DELAY)
+    , centeringAdjustment(0)
+    , slowDelay(0)
+    , rtcCheckDelay(rtcCheckDelay)
+    , verboseLogging(verboseLogging)
     , quietHoursEnabled(false)
-    , quietHoursStart(QUIET_HOURS_START)
-    , quietHoursEnd(QUIET_HOURS_END)
-    , quietBrightnessPercent(QUIET_BRIGHTNESS_PERCENT)
+    , quietHoursStart(0)
+    , quietHoursEnd(0)
+    , quietBrightnessPercent(50)
     , defaultBrightness(brightness)
     , hourChangeAnimationEnabled(true)
     , testAnimationOnStartup(false)
@@ -26,16 +28,16 @@ Clock::Clock(int stepsPerRev, int motorPin1, int motorPin2, int motorPin3, int m
 }
 
 void Clock::begin(DS3231* rtcPtr) {
-    Serial.println("=== Clock System Starting ===");
+    Serial.println(F("=== Clock System Starting ==="));
     
     // Store RTC reference
     if (rtcPtr != nullptr) {
         externalRTC = rtcPtr;
         usingExternalRTC = true;
-        Serial.println("Clock: Using external RTC instance");
+        if (verboseLogging) Serial.println(F("Clock: Using external RTC instance"));
     } else {
         usingExternalRTC = false;
-        Serial.println("Clock: Using internal RTC instance");
+        if (verboseLogging) Serial.println(F("Clock: Using internal RTC instance"));
     }
     
     // Initialize components
@@ -51,10 +53,12 @@ void Clock::begin(DS3231* rtcPtr) {
     int initialMinute = clockTime.getMinute();
     int initialHour = clockTime.getHour();
     
-    Serial.print("Clock: Initial time - ");
-    Serial.print(initialHour);
-    Serial.print(":");
-    Serial.println(initialMinute);
+    if (verboseLogging) {
+        Serial.print(F("Clock: Initial time - "));
+        Serial.print(initialHour);
+        Serial.print(F(":"));
+        Serial.println(initialMinute);
+    }
     
     // Set initial brightness based on quiet hours
     if (quietHoursEnabled) {
@@ -63,22 +67,24 @@ void Clock::begin(DS3231* rtcPtr) {
     
     // Show hour change animation on startup if enabled
     if (testAnimationOnStartup && hourChangeAnimationEnabled) {
-        Serial.println("Clock: Testing hour change animation on startup...");
+        if (verboseLogging) Serial.println(F("Clock: Testing hour change animation on startup..."));
         int testHour = (initialHour + 1) % 24;
-        Serial.print("Clock: Showing windmill animation for hour ");
-        Serial.println(testHour);
+        if (verboseLogging) {
+            Serial.print(F("Clock: Showing windmill animation for hour "));
+            Serial.println(testHour);
+        }
         clockDisplay.showWindmillHourChange(testHour);
-        Serial.println("Clock: Hour change animation test complete");
+        if (verboseLogging) Serial.println(F("Clock: Hour change animation test complete"));
     }
     
     // Move to current minute position
     clockMotor.moveToMinute(initialMinute);
     
-    Serial.println("=== Clock System Ready ===");
+    Serial.println(F("=== Clock System Ready ==="));
 }
 
 void Clock::performCalibration() {
-    Serial.println("Clock: Starting calibration...");
+    if (verboseLogging) Serial.println(F("Clock: Starting calibration..."));
     
     // Show calibration indicator
     clockDisplay.clear();
@@ -94,14 +100,14 @@ void Clock::performCalibration() {
         clockDisplay.getPixels().setPixelColor(0, clockDisplay.getPixels().Color(0, 255, 0));
         clockDisplay.show();
         delay(2000);
-        Serial.println("Clock: Calibration successful");
+        if (verboseLogging) Serial.println(F("Clock: Calibration successful"));
     } else {
-        // Show error
+        // Show failure
         clockDisplay.clear();
         clockDisplay.getPixels().setPixelColor(0, clockDisplay.getPixels().Color(255, 0, 0));
         clockDisplay.show();
         delay(2000);
-        Serial.println("Clock: Calibration failed");
+        Serial.println(F("Clock: Calibration FAILED!")); // CRITICAL - always show
     }
 }
 
@@ -111,16 +117,18 @@ void Clock::enableQuietHours(bool enable, int start, int end, int percent) {
     quietHoursEnd = end;
     quietBrightnessPercent = percent;
     
-    if (enable) {
-        Serial.print("Clock: Quiet hours enabled (");
-        Serial.print(start);
-        Serial.print(":00 - ");
-        Serial.print(end);
-        Serial.print(":00, ");
-        Serial.print(percent);
-        Serial.println("% brightness)");
-    } else {
-        Serial.println("Clock: Quiet hours disabled");
+    if (verboseLogging) {
+        if (enable) {
+            Serial.print(F("Clock: Quiet hours enabled ("));
+            Serial.print(start);
+            Serial.print(F(":00 - "));
+            Serial.print(end);
+            Serial.print(F(":00, "));
+            Serial.print(percent);
+            Serial.println(F("% brightness)"));
+        } else {
+            Serial.println(F("Clock: Quiet hours disabled"));
+        }
     }
 }
 
@@ -128,7 +136,7 @@ void Clock::update() {
     // Update time from RTC
     if (!clockTime.update()) {
         // Second hasn't changed, nothing to do
-        delay(RTC_CHECK_DELAY);
+        delay(rtcCheckDelay);
         return;
     }
     
@@ -147,32 +155,36 @@ void Clock::update() {
     int second = clockTime.getSecond();
     int hour = clockTime.getHour();
     
-    // Debug output (remove after testing)
-    static uint32_t lastDebugTime = 0;
-    if (minute == 59 && millis() - lastDebugTime > 5000) {
-        Serial.print("Clock: Checking animation - minute=59, second=");
-        Serial.print(second);
-        Serial.print(", enabled=");
-        Serial.print(hourChangeAnimationEnabled);
-        Serial.print(", lastHourForAnimation=");
-        Serial.println(lastHourForAnimation);
-        lastDebugTime = millis();
+    // Debug output
+    if (verboseLogging) {
+        static uint32_t lastDebugTime = 0;
+        if (minute == 59 && millis() - lastDebugTime > 5000) {
+            Serial.print(F("Clock: Checking animation - minute=59, second="));
+            Serial.print(second);
+            Serial.print(F(", enabled="));
+            Serial.print(hourChangeAnimationEnabled);
+            Serial.print(F(", lastHourForAnimation="));
+            Serial.println(lastHourForAnimation);
+            lastDebugTime = millis();
+        }
     }
     
     if (hourChangeAnimationEnabled && minute == 59 && (second == 57 || second == 58)) {
         int nextHour = (hour + 1) % 24;
         if (nextHour != lastHourForAnimation) {
-            Serial.print("Clock: Hour transition animation (");
-            Serial.print(hour);
-            Serial.print(" -> ");
-            Serial.print(nextHour);
-            Serial.println(")");
+            if (verboseLogging) {
+                Serial.print(F("Clock: Hour transition animation ("));
+                Serial.print(hour);
+                Serial.print(F(" -> "));
+                Serial.print(nextHour);
+                Serial.println(F(")"));
+            }
             
             clockDisplay.showWindmillHourChange(nextHour);
             
             // Perform micro-calibration if enabled
             if (microCalibrationEnabled && nextHour % microCalibrationInterval == 0) {
-                Serial.println("Clock: Performing micro-calibration");
+                if (verboseLogging) Serial.println(F("Clock: Performing micro-calibration"));
                 clockMotor.powerOn();
                 clockMotor.microCalibrate(centeringAdjustment, slowDelay);
                 
@@ -186,7 +198,14 @@ void Clock::update() {
             
             // Update brightness for next hour
             if (quietHoursEnabled) {
-                clockDisplay.setQuietMode(isQuietHours(nextHour, quietHoursStart, quietHoursEnd));
+                // Check if next hour is within quiet hours
+                bool isQuiet;
+                if (quietHoursStart > quietHoursEnd) {
+                    isQuiet = (nextHour >= quietHoursStart || nextHour < quietHoursEnd);
+                } else {
+                    isQuiet = (nextHour >= quietHoursStart && nextHour < quietHoursEnd);
+                }
+                clockDisplay.setQuietMode(isQuiet);
                 updateQuietHoursBrightness();
             }
             
@@ -201,8 +220,10 @@ void Clock::update() {
                 // Select random pattern (0-3 for first four patterns)
                 randomSeed(analogRead(A7) + hour);
                 displayPattern = (ClockDisplay::Pattern)random(4);
-                Serial.print("Clock: Pattern changed to ");
-                Serial.println(displayPattern);
+                if (verboseLogging) {
+                    Serial.print(F("Clock: Pattern changed to "));
+                    Serial.println(displayPattern);
+                }
             }
             lastHourForPattern = hour;
         }
@@ -215,8 +236,10 @@ void Clock::update() {
 void Clock::handleMinuteChange() {
     int minute = clockTime.getMinute();
     
-    Serial.print("Clock: Minute changed to ");
-    Serial.println(minute);
+    if (verboseLogging) {
+        Serial.print(F("Clock: Minute changed to "));
+        Serial.println(minute);
+    }
     
     // Move hand to new position
     clockMotor.moveToMinute(minute);
@@ -225,8 +248,10 @@ void Clock::handleMinuteChange() {
 void Clock::handleHourChange() {
     int hour = clockTime.getHour();
     
-    Serial.print("Clock: Hour changed to ");
-    Serial.println(hour);
+    if (verboseLogging) {
+        Serial.print(F("Clock: Hour changed to "));
+        Serial.println(hour);
+    }
     
     // Update brightness if quiet hours changed
     if (quietHoursEnabled) {
@@ -248,23 +273,34 @@ void Clock::updateDisplay() {
 
 void Clock::updateQuietHoursBrightness() {
     int currentHour = clockTime.getHour();
-    bool isQuiet = isQuietHours(currentHour, quietHoursStart, quietHoursEnd);
+    
+    // Check if current hour is within quiet hours
+    bool isQuiet;
+    if (quietHoursStart > quietHoursEnd) {
+        // Quiet hours cross midnight
+        isQuiet = (currentHour >= quietHoursStart || currentHour < quietHoursEnd);
+    } else {
+        // Quiet hours within same day
+        isQuiet = (currentHour >= quietHoursStart && currentHour < quietHoursEnd);
+    }
     
     clockDisplay.setQuietMode(isQuiet);
     
     uint8_t targetBrightness;
     if (isQuiet) {
-        targetBrightness = getQuietBrightness(defaultBrightness, quietBrightnessPercent);
+        targetBrightness = (defaultBrightness * quietBrightnessPercent) / 100;
     } else {
         targetBrightness = defaultBrightness;
     }
     
     if (clockDisplay.getBrightness() != targetBrightness) {
         clockDisplay.setBrightness(targetBrightness);
-        Serial.print("Clock: Brightness changed to ");
-        Serial.print(targetBrightness);
-        Serial.print(" (");
-        Serial.print(isQuiet ? "QUIET" : "ACTIVE");
-        Serial.println(" mode)");
+        if (verboseLogging) {
+            Serial.print(F("Clock: Brightness changed to "));
+            Serial.print(targetBrightness);
+            Serial.print(F(" ("));
+            Serial.print(isQuiet ? F("QUIET") : F("ACTIVE"));
+            Serial.println(F(" mode)"));
+        }
     }
 }

@@ -6,11 +6,28 @@
 
 // Hardware instances
 DS3231 rtc;
-Clock hybridClock;
+
+// Instantiate Clock with all configuration from config.h
+Clock hybridClock(
+    STEPS_PER_REVOLUTION,    // stepsPerRev
+    FIRST_MOTOR_PIN,         // firstMotorPin (pins +1, +2, +3 are automatic)
+    SENSOR_PIN,              // sensorPin
+    NEOPIXEL_PIN,            // neopixelPin
+    HOUR_LEDS,               // hourLeds
+    MINUTE_LEDS,             // minuteLeds
+    DEFAULT_BRIGHTNESS,      // brightness
+    MOTOR_SPEED,             // motorSpeed
+    RTC_CHECK_DELAY,         // rtcCheckDelay
+    #ifdef ENABLE_VERBOSE_LOGGING
+        true                 // verboseLogging
+    #else
+        false
+    #endif
+);
 
 void setup() {
     Serial.begin(115200);
-    Serial.println("=== Hybrid Clock Starting ===");
+    Serial.println(F("=== Hybrid Clock Starting ==="));
     
     // Initialize I2C for RTC
     Wire.begin();
@@ -45,7 +62,7 @@ void setup() {
     // Initialize clock with external RTC
     hybridClock.begin(&rtc);
     
-    Serial.println("=== Setup Complete ===");
+    Serial.println(F("=== Setup Complete ==="));
 }
 
 void loop() {

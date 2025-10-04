@@ -53,6 +53,12 @@
 // #define TEST_REDUCED_BRIGHTNESS      // Test hour change animation at 50% brightness
 // #define TEST_QUIET_MICRO_CALIBRATION // Test quiet micro-calibration after startup
 
+// Logging Configuration
+// Clock library configuration
+// Enable/disable verbose Serial output to save RAM and Flash
+// Disable this in production to save memory (~200-300 bytes Flash savings)
+#define ENABLE_VERBOSE_LOGGING
+
 // Quiet Hours Configuration
 #define ENABLE_QUIET_HOURS           // Enable automatic brightness reduction during quiet hours
 #define QUIET_HOURS_START 22         // 10:00 PM (22:00) - start of quiet hours

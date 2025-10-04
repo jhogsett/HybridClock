@@ -6,7 +6,6 @@
 #include <ClockTime.h>
 #include <ClockMotor.h>
 #include <ClockDisplay.h>
-#include <ClockConfig.h>
 
 /**
  * Clock - Unified clock system
@@ -27,17 +26,16 @@
  */
 class Clock {
 public:
-    Clock(int stepsPerRev = STEPS_PER_REVOLUTION,
-          int motorPin1 = FIRST_MOTOR_PIN,
-          int motorPin2 = FIRST_MOTOR_PIN + 1,
-          int motorPin3 = FIRST_MOTOR_PIN + 2,
-          int motorPin4 = FIRST_MOTOR_PIN + 3,
-          int sensorPin = SENSOR_PIN,
-          int neopixelPin = NEOPIXEL_PIN,
-          int hourLeds = HOUR_LEDS,
-          int minuteLeds = MINUTE_LEDS,
-          uint8_t brightness = DEFAULT_BRIGHTNESS,
-          int motorSpeed = MOTOR_SPEED);
+    Clock(int stepsPerRev,
+          int firstMotorPin,  // Other 3 pins are sequential: pin+1, pin+2, pin+3
+          int sensorPin,
+          int neopixelPin,
+          int hourLeds,
+          int minuteLeds,
+          uint8_t brightness,
+          int motorSpeed,
+          int rtcCheckDelay = 50,
+          bool verboseLogging = false);
     
     // Initialize clock system with external RTC
     // If rtcPtr is nullptr, will use internal RTC instance
@@ -54,7 +52,7 @@ public:
     // Configuration
     void setCenteringAdjustment(int adjustment) { centeringAdjustment = adjustment; }
     void setSlowDelay(int delay) { slowDelay = delay; }
-    void enableQuietHours(bool enable, int start = QUIET_HOURS_START, int end = QUIET_HOURS_END, int percent = QUIET_BRIGHTNESS_PERCENT);
+    void enableQuietHours(bool enable, int start, int end, int percent);
     void enableHourChangeAnimation(bool enable) { hourChangeAnimationEnabled = enable; }
     void enableTestAnimationOnStartup(bool enable) { testAnimationOnStartup = enable; }
     void enableMicroCalibration(bool enable, int everyNHours = 4) { 
@@ -78,6 +76,8 @@ private:
     // Configuration
     int centeringAdjustment;
     int slowDelay;
+    int rtcCheckDelay;
+    bool verboseLogging;
     bool quietHoursEnabled;
     int quietHoursStart;
     int quietHoursEnd;

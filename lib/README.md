@@ -2,6 +2,14 @@
 
 This directory contains portable, reusable clock libraries that can be integrated into other projects.
 
+## Recent Improvements (January 2025)
+
+**Simplified Motor Pin Specification**: The `Clock` constructor now accepts a single `firstMotorPin` parameter instead of 4 separate pins. The library automatically uses sequential pins (pin, pin+1, pin+2, pin+3).
+
+**Verbose Logging Control**: Added configurable verbose logging to reduce Flash memory usage and clean up Serial output. Enable/disable via `ENABLE_VERBOSE_LOGGING` in config.h. See `VERBOSE_LOGGING.md` for details.
+
+See `API_IMPROVEMENTS.md` for complete documentation of recent changes.
+
 ## Libraries
 
 ### ClockTime
@@ -48,7 +56,8 @@ Handles stepper motor control, calibration, and position tracking.
 ```cpp
 #include <ClockMotor.h>
 
-ClockMotor motor(STEPS_PER_REVOLUTION, PIN1, PIN2, PIN3, PIN4, SENSOR_PIN);
+ClockMotor motor(STEPS_PER_REVOLUTION, PIN1, PIN2, PIN3, PIN4, SENSOR_PIN, 
+                 MOTOR_SPEED, true); // Last param = verbose logging
 
 void setup() {
     motor.begin();

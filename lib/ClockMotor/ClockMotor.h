@@ -13,7 +13,7 @@
 class ClockMotor {
 public:
     ClockMotor(int stepsPerRev, int pin1, int pin2, int pin3, int pin4, 
-               int sensorPin, int motorSpeed = 11);
+               int sensorPin, int motorSpeed = 11, bool verboseLogging = false);
     
     // Initialize motor and pins
     void begin();
@@ -48,6 +48,7 @@ private:
     float handPosition;
     bool motorPowered;
     bool motorPins[4];
+    bool verboseLogging;
 };
 
 #endif // CLOCK_MOTOR_H

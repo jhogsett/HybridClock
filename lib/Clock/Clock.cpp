@@ -15,6 +15,7 @@ Clock::Clock(int stepsPerRev, int motorPin1, int motorPin2, int motorPin3, int m
     , quietBrightnessPercent(QUIET_BRIGHTNESS_PERCENT)
     , defaultBrightness(brightness)
     , hourChangeAnimationEnabled(true)
+    , testAnimationOnStartup(false)
     , microCalibrationEnabled(false)
     , microCalibrationInterval(4)
     , hourlyPatternRotation(false)
@@ -58,6 +59,16 @@ void Clock::begin(DS3231* rtcPtr) {
     // Set initial brightness based on quiet hours
     if (quietHoursEnabled) {
         updateQuietHoursBrightness();
+    }
+    
+    // Show hour change animation on startup if enabled
+    if (testAnimationOnStartup && hourChangeAnimationEnabled) {
+        Serial.println("Clock: Testing hour change animation on startup...");
+        int testHour = (initialHour + 1) % 24;
+        Serial.print("Clock: Showing windmill animation for hour ");
+        Serial.println(testHour);
+        clockDisplay.showWindmillHourChange(testHour);
+        Serial.println("Clock: Hour change animation test complete");
     }
     
     // Move to current minute position
@@ -135,6 +146,18 @@ void Clock::update() {
     int minute = clockTime.getMinute();
     int second = clockTime.getSecond();
     int hour = clockTime.getHour();
+    
+    // Debug output (remove after testing)
+    static uint32_t lastDebugTime = 0;
+    if (minute == 59 && millis() - lastDebugTime > 5000) {
+        Serial.print("Clock: Checking animation - minute=59, second=");
+        Serial.print(second);
+        Serial.print(", enabled=");
+        Serial.print(hourChangeAnimationEnabled);
+        Serial.print(", lastHourForAnimation=");
+        Serial.println(lastHourForAnimation);
+        lastDebugTime = millis();
+    }
     
     if (hourChangeAnimationEnabled && minute == 59 && (second == 57 || second == 58)) {
         int nextHour = (hour + 1) % 24;

@@ -27,7 +27,7 @@ void setup() {
     #endif
     
     #ifdef TEST_HOUR_CHANGE_ON_STARTUP
-        hybridClock.enableHourChangeAnimation(true);
+        hybridClock.enableTestAnimationOnStartup(true);
     #endif
     
     // Enable micro-calibration every 4 hours

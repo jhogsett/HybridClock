@@ -56,6 +56,7 @@ public:
     void setSlowDelay(int delay) { slowDelay = delay; }
     void enableQuietHours(bool enable, int start = QUIET_HOURS_START, int end = QUIET_HOURS_END, int percent = QUIET_BRIGHTNESS_PERCENT);
     void enableHourChangeAnimation(bool enable) { hourChangeAnimationEnabled = enable; }
+    void enableTestAnimationOnStartup(bool enable) { testAnimationOnStartup = enable; }
     void enableMicroCalibration(bool enable, int everyNHours = 4) { 
         microCalibrationEnabled = enable;
         microCalibrationInterval = everyNHours;
@@ -83,6 +84,7 @@ private:
     int quietBrightnessPercent;
     uint8_t defaultBrightness;
     bool hourChangeAnimationEnabled;
+    bool testAnimationOnStartup;
     bool microCalibrationEnabled;
     int microCalibrationInterval;
     bool hourlyPatternRotation;

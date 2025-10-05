@@ -20,11 +20,8 @@ Clock::Clock(int stepsPerRev, int firstMotorPin,
     , testAnimationOnStartup(false)
     , microCalibrationEnabled(false)
     , microCalibrationInterval(4)
-    , hourlyPatternRotation(false)
-    , displayPattern(ClockDisplay::DEFAULT_COMPLEMENT)
     , calibrated(false)
-    , lastHourForAnimation(-1)
-    , lastHourForPattern(-1) {
+    , lastHourForAnimation(-1) {
 }
 
 void Clock::begin(DS3231* rtcPtr) {
@@ -70,10 +67,10 @@ void Clock::begin(DS3231* rtcPtr) {
         if (verboseLogging) Serial.println(F("Clock: Testing hour change animation on startup..."));
         int testHour = (initialHour + 1) % 24;
         if (verboseLogging) {
-            Serial.print(F("Clock: Showing windmill animation for hour "));
+            Serial.print(F("Clock: Showing animation for hour "));
             Serial.println(testHour);
         }
-        clockDisplay.showWindmillHourChange(testHour);
+        animationManager.playHourChangeAnimation(clockDisplay, testHour);
         if (verboseLogging) Serial.println(F("Clock: Hour change animation test complete"));
     }
     
@@ -180,7 +177,7 @@ void Clock::update() {
                 Serial.println(F(")"));
             }
             
-            clockDisplay.showWindmillHourChange(nextHour);
+            animationManager.playHourChangeAnimation(clockDisplay, nextHour);
             
             // Perform micro-calibration if enabled
             if (microCalibrationEnabled && nextHour % microCalibrationInterval == 0) {
@@ -213,19 +210,13 @@ void Clock::update() {
         }
     }
     
-    // Handle hourly pattern rotation
-    if (hourlyPatternRotation) {
-        if (hour != lastHourForPattern) {
-            if (lastHourForPattern != -1) {
-                // Select random pattern (0-3 for first four patterns)
-                randomSeed(analogRead(A7) + hour);
-                displayPattern = (ClockDisplay::Pattern)random(4);
-                if (verboseLogging) {
-                    Serial.print(F("Clock: Pattern changed to "));
-                    Serial.println(displayPattern);
-                }
-            }
-            lastHourForPattern = hour;
+    // Handle automatic pattern rotation
+    if (patternManager.shouldRotate(hour)) {
+        randomSeed(analogRead(A7) + hour);
+        patternManager.selectRandomPattern();
+        if (verboseLogging) {
+            Serial.print(F("Clock: Pattern changed to "));
+            Serial.println(patternManager.getPatternName(patternManager.getPattern()));
         }
     }
     
@@ -262,8 +253,8 @@ void Clock::handleHourChange() {
 void Clock::updateDisplay() {
     clockDisplay.clear();
     
-    // Display current pattern
-    clockDisplay.displayPattern(displayPattern);
+    // Display current pattern from pattern manager
+    clockDisplay.displayPattern(patternManager.getPattern());
     
     // Overlay hour indicators
     clockDisplay.showHourIndicators(clockTime.getHour12());

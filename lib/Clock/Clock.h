@@ -6,6 +6,8 @@
 #include <ClockTime.h>
 #include <ClockMotor.h>
 #include <ClockDisplay.h>
+#include <AnimationManager.h>
+#include <PatternManager.h>
 
 /**
  * Clock - Unified clock system
@@ -48,6 +50,8 @@ public:
     ClockTime& getTime() { return clockTime; }
     ClockMotor& getMotor() { return clockMotor; }
     ClockDisplay& getDisplay() { return clockDisplay; }
+    AnimationManager& getAnimationManager() { return animationManager; }
+    PatternManager& getPatternManager() { return patternManager; }
     
     // Configuration
     void setCenteringAdjustment(int adjustment) { centeringAdjustment = adjustment; }
@@ -59,8 +63,10 @@ public:
         microCalibrationEnabled = enable;
         microCalibrationInterval = everyNHours;
     }
-    void setDisplayPattern(ClockDisplay::Pattern pattern) { displayPattern = pattern; }
-    void enableHourlyPatternRotation(bool enable) { hourlyPatternRotation = enable; }
+    
+    // Deprecated: Use getPatternManager() instead
+    void setDisplayPattern(ClockDisplay::Pattern pattern) { patternManager.setPattern(pattern); }
+    void enableHourlyPatternRotation(bool enable) { patternManager.enableAutoRotation(enable); }
     
     // Status
     bool isCalibrated() const { return calibrated; }
@@ -69,6 +75,8 @@ private:
     ClockTime clockTime;
     ClockMotor clockMotor;
     ClockDisplay clockDisplay;
+    AnimationManager animationManager;
+    PatternManager patternManager;
     
     DS3231* externalRTC;
     bool usingExternalRTC;
@@ -87,13 +95,10 @@ private:
     bool testAnimationOnStartup;
     bool microCalibrationEnabled;
     int microCalibrationInterval;
-    bool hourlyPatternRotation;
-    ClockDisplay::Pattern displayPattern;
     
     // State
     bool calibrated;
     int lastHourForAnimation;
-    int lastHourForPattern;
     
     // Helper methods
     void performCalibration();

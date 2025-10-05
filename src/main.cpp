@@ -52,11 +52,20 @@ void setup() {
     
     #ifdef ENABLE_PATTERN_SYSTEM
         #ifdef ENABLE_HOURLY_PATTERN_ROTATION
-            hybridClock.enableHourlyPatternRotation(true);
+            // Enable automatic pattern rotation using PatternManager
+            hybridClock.getPatternManager().enableAutoRotation(true);
+            hybridClock.getPatternManager().setRotationInterval(1);  // Rotate every hour
+            
+            // Enable first 4 patterns for rotation (default behavior)
+            // Or customize: hybridClock.getPatternManager().enableAllPatterns();
         #else
             // Default to breathing rings pattern
             hybridClock.setDisplayPattern(ClockDisplay::BREATHING_RINGS);
         #endif
+        
+        // Optional: Configure animation manager
+        // hybridClock.getAnimationManager().setAnimation(AnimationManager::WINDMILL);
+        // hybridClock.getAnimationManager().enableRandomSelection(true);
     #endif
     
     // Initialize clock with external RTC

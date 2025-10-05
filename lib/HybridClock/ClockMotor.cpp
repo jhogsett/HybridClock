@@ -1,5 +1,16 @@
 #include "ClockMotor.h"
 
+// Uncomment to enable Serial debugging output from the library
+// #define HYBRIDCLOCK_ENABLE_SERIAL
+
+#ifdef HYBRIDCLOCK_ENABLE_SERIAL
+  #define SERIAL_PRINT(x) SERIAL_PRINT(x)
+  #define SERIAL_PRINTLN(x) SERIAL_PRINTLN(x)
+#else
+  #define SERIAL_PRINT(x)
+  #define SERIAL_PRINTLN(x)
+#endif
+
 ClockMotor::ClockMotor(int stepsPerRev, int pin1, int pin2, int pin3, int pin4, 
                        int sensorPin, int motorSpeed, bool verboseLogging)
     : stepper(stepsPerRev, pin1, pin2, pin3, pin4)
@@ -46,7 +57,7 @@ void ClockMotor::powerOff() {
 }
 
 bool ClockMotor::calibrate(int centeringAdjustment, int slowDelay) {
-    if (verboseLogging) Serial.println(F("ClockMotor: Starting calibration..."));
+    if (verboseLogging) SERIAL_PRINTLN(F("ClockMotor: Starting calibration..."));
     
     handPosition = 0.0;
     int cal_steps1 = 0;
@@ -79,8 +90,8 @@ bool ClockMotor::calibrate(int centeringAdjustment, int slowDelay) {
     }
     
     if (verboseLogging) {
-        Serial.print(F("ClockMotor: Fwd Steps: "));
-        Serial.println(cal_steps1);
+        SERIAL_PRINT(F("ClockMotor: Fwd Steps: "));
+        SERIAL_PRINTLN(cal_steps1);
     }
     
     // Roll back until the sensor is found
@@ -101,14 +112,14 @@ bool ClockMotor::calibrate(int centeringAdjustment, int slowDelay) {
     }
     
     if (verboseLogging) {
-        Serial.print(F("ClockMotor: Bak Steps: "));
-        Serial.println(cal_steps2);
+        SERIAL_PRINT(F("ClockMotor: Bak Steps: "));
+        SERIAL_PRINTLN(cal_steps2);
     }
     
     int cal_steps = (cal_steps1 + cal_steps2) / 2;
     if (verboseLogging) {
-        Serial.print(F("ClockMotor: Center Steps: "));
-        Serial.println(cal_steps);
+        SERIAL_PRINT(F("ClockMotor: Center Steps: "));
+        SERIAL_PRINTLN(cal_steps);
     }
     
     // Roll forward slowly the average of the counted steps
@@ -124,13 +135,13 @@ bool ClockMotor::calibrate(int centeringAdjustment, int slowDelay) {
     }
     
     handPosition = 0.0;
-    if (verboseLogging) Serial.println(F("ClockMotor: Calibration complete"));
+    if (verboseLogging) SERIAL_PRINTLN(F("ClockMotor: Calibration complete"));
     
     return true;
 }
 
 void ClockMotor::microCalibrate(int centeringAdjustment, int slowDelay) {
-    if (verboseLogging) Serial.println(F("ClockMotor: Starting micro-calibration..."));
+    if (verboseLogging) SERIAL_PRINTLN(F("ClockMotor: Starting micro-calibration..."));
     
     int cal_steps1 = 0;
     int cal_steps2 = 0;
@@ -177,7 +188,7 @@ void ClockMotor::microCalibrate(int centeringAdjustment, int slowDelay) {
                 stepper.step(1);
             }
         }
-        if (verboseLogging) Serial.println(F("ClockMotor: Micro-calibration skipped (magnet not found)"));
+        if (verboseLogging) SERIAL_PRINTLN(F("ClockMotor: Micro-calibration skipped (magnet not found)"));
         return;
     }
     
@@ -217,7 +228,7 @@ void ClockMotor::microCalibrate(int centeringAdjustment, int slowDelay) {
     }
     
     handPosition = 0.0;
-    if (verboseLogging) Serial.println(F("ClockMotor: Micro-calibration complete"));
+    if (verboseLogging) SERIAL_PRINTLN(F("ClockMotor: Micro-calibration complete"));
 }
 
 void ClockMotor::moveToMinute(int minute) {

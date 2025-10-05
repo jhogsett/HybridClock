@@ -4,9 +4,9 @@
  * A simple example of using the HybridClock library to create a hybrid
  * analog-digital clock with stepper motor and NeoPixel LED displays.
  * 
- * Note: Serial debugging is disabled by default in the library to save Flash memory.
- * To enable Serial output, add this line BEFORE including HybridClock.h:
- *   #define HYBRIDCLOCK_ENABLE_SERIAL
+ * This example enables Serial debugging to show library output.
+ * To disable Serial debugging (saves ~2KB Flash), comment out the
+ * HYBRIDCLOCK_ENABLE_SERIAL line below.
  * 
  * Hardware Required:
  * - Arduino Nano (or compatible)
@@ -21,6 +21,9 @@
  * - Sensor: Digital pin 2
  * - NeoPixels: Data to pin 6
  */
+
+// Enable Serial debugging output from the library
+#define HYBRIDCLOCK_ENABLE_SERIAL
 
 #include <Wire.h>
 #include <DS3231-RTC.h>
@@ -39,7 +42,7 @@
 // RTC instance
 DS3231 rtc;
 
-// Clock instance
+// Clock instance with verbose logging enabled
 Clock hybridClock(
     STEPS_PER_REVOLUTION,
     FIRST_MOTOR_PIN,
@@ -48,7 +51,9 @@ Clock hybridClock(
     HOUR_LEDS,
     MINUTE_LEDS,
     DEFAULT_BRIGHTNESS,
-    MOTOR_SPEED
+    MOTOR_SPEED,
+    50,     // RTC check delay (ms)
+    true    // Verbose logging enabled
 );
 
 void setup() {

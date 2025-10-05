@@ -62,6 +62,10 @@ Clock hybridClock(
 
 void setup() {
     Wire.begin();
+    
+    // Set centering adjustment if needed (calibrate your specific hardware)
+    hybridClock.setCenteringAdjustment(9);  // Adjust based on your device
+    
     hybridClock.begin(&rtc);
 }
 
@@ -71,6 +75,32 @@ void loop() {
 ```
 
 ## Configuration Options
+
+### Centering Adjustment
+
+After calibration, the motor hand may not stop exactly at 12 o'clock. Fine-tune the position:
+
+```cpp
+// Positive values: move hand clockwise
+// Negative values: move hand counter-clockwise
+// Each unit ≈ 1 motor step (~0.18 degrees)
+// Typical range: -10 to +10
+hybridClock.setCenteringAdjustment(9);  // Adjust for your specific hardware
+```
+
+**If the motor arm becomes detached:**
+1. Upload code and let calibration run
+2. Watch for the **GREEN LED** (calibration success indicator)
+3. **Immediately power off** when you see the green LED
+4. Manually attach the arm pointing exactly at **12:00** (:00 position)
+5. Power back on - the arm should now be correctly positioned
+
+**Fine-tuning centering adjustment:**
+1. Upload code with centering adjustment set to `0`
+2. Observe where the hand stops after calibration
+3. If it's slightly clockwise of 12:00, use a negative value
+4. If it's slightly counter-clockwise of 12:00, use a positive value
+5. Adjust and re-upload until hand is perfectly centered at 12:00
 
 ### Quiet Hours
 Automatically dim LEDs during specified hours:

@@ -63,6 +63,24 @@ void setup() {
     // Initialize I2C for RTC
     Wire.begin();
     
+    // IMPORTANT: Centering Adjustment & Calibration
+    // 
+    // FIRST TIME SETUP / ARM DETACHED:
+    // If the motor arm becomes detached or this is first time setup:
+    // 1. Upload this code and let it run through calibration
+    // 2. Watch for the GREEN LED (calibration success indicator)
+    // 3. IMMEDIATELY power off the device when you see the green LED
+    // 4. Manually attach the arm pointing exactly at 12:00 (:00 position)
+    // 5. Power back on - the arm should now be correctly positioned
+    //
+    // FINE-TUNING CENTERING:
+    // After calibration, if the motor stops slightly off from 12 o'clock:
+    // - Positive values move the hand clockwise
+    // - Negative values move the hand counter-clockwise
+    // - Each unit is approximately 1 motor step (~0.18 degrees)
+    // - Start with 0 and adjust based on your hardware (typical range: -10 to +10)
+    hybridClock.setCenteringAdjustment(9);  // Example: 9 works for one specific device
+    
     // Optional: Enable quiet hours (dimmed from 10 PM to 6 AM)
     hybridClock.enableQuietHours(true, 22, 6, 30);  // 30% brightness
     

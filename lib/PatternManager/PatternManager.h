@@ -40,8 +40,10 @@ public:
     void setRotationInterval(int hours) { rotationIntervalHours = hours; }
     int getRotationInterval() const { return rotationIntervalHours; }
     
-    // Get pattern name for logging
+#ifdef DEBUG_PATTERN_NAMES
+    // Get pattern name for logging (only available if DEBUG_PATTERN_NAMES is defined)
     const char* getPatternName(ClockDisplay::Pattern pattern) const;
+#endif
     
 private:
     ClockDisplay::Pattern currentPattern;

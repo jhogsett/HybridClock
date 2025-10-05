@@ -215,8 +215,13 @@ void Clock::update() {
         randomSeed(analogRead(A7) + hour);
         patternManager.selectRandomPattern();
         if (verboseLogging) {
+#ifdef DEBUG_PATTERN_NAMES
             Serial.print(F("Clock: Pattern changed to "));
             Serial.println(patternManager.getPatternName(patternManager.getPattern()));
+#else
+            Serial.print(F("Clock: Pattern changed to "));
+            Serial.println(patternManager.getPattern());
+#endif
         }
     }
     

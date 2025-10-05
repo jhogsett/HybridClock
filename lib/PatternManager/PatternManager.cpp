@@ -88,6 +88,7 @@ int PatternManager::countEnabledPatterns() const {
     return count;
 }
 
+#ifdef DEBUG_PATTERN_NAMES
 const char* PatternManager::getPatternName(ClockDisplay::Pattern pattern) const {
     switch (pattern) {
         case ClockDisplay::DEFAULT_COMPLEMENT:
@@ -106,3 +107,4 @@ const char* PatternManager::getPatternName(ClockDisplay::Pattern pattern) const 
             return "Unknown";
     }
 }
+#endif

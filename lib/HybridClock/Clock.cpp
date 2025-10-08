@@ -148,38 +148,16 @@ void Clock::update() {
         return;
     }
     
-    // Handle minute change
-    if (clockTime.hasMinuteChanged()) {
-        handleMinuteChange();
-    }
-    
-    // Handle hour change
-    if (clockTime.hasHourChanged()) {
-        handleHourChange();
-    }
-    
-    // Check for hour change animation trigger (at seconds 57-58)
     int minute = clockTime.getMinute();
     int second = clockTime.getSecond();
     int hour = clockTime.getHour();
     
-    // Debug output
-    if (verboseLogging) {
-        static uint32_t lastDebugTime = 0;
-        if (minute == 59 && millis() - lastDebugTime > 5000) {
-            SERIAL_PRINT(F("Clock: Checking animation - minute=59, second="));
-            SERIAL_PRINT(second);
-            SERIAL_PRINT(F(", enabled="));
-            SERIAL_PRINT(hourChangeAnimationEnabled);
-            SERIAL_PRINT(F(", lastHourForAnimation="));
-            SERIAL_PRINTLN(lastHourForAnimation);
-            lastDebugTime = millis();
-        }
-    }
-    
-    if (hourChangeAnimationEnabled && minute == 59 && (second == 57 || second == 58)) {
+    // Hour change animation - trigger at exactly 59:58 for seamless timing
+    bool hourTransitionHandled = false;
+    if (hourChangeAnimationEnabled && minute == 59 && second == 58) {
         int nextHour = (hour + 1) % 24;
         if (nextHour != lastHourForAnimation) {
+#ifdef HYBRIDCLOCK_ENABLE_SERIAL
             if (verboseLogging) {
                 SERIAL_PRINT(F("Clock: Hour transition animation ("));
                 SERIAL_PRINT(hour);
@@ -187,20 +165,23 @@ void Clock::update() {
                 SERIAL_PRINT(nextHour);
                 SERIAL_PRINTLN(F(")"));
             }
+#endif
             
+            // Animation runs for exactly 2 seconds (59:58 -> 00:00)
             animationManager.playHourChangeAnimation(clockDisplay, nextHour);
+            
+            // Now we're at 00:00 - immediately move hand to home position
+            clockMotor.moveToMinute(0);
             
             // Perform micro-calibration if enabled
             if (microCalibrationEnabled && nextHour % microCalibrationInterval == 0) {
+#ifdef HYBRIDCLOCK_ENABLE_SERIAL
                 if (verboseLogging) SERIAL_PRINTLN(F("Clock: Performing micro-calibration"));
+#endif
                 clockMotor.powerOn();
                 clockMotor.microCalibrate(centeringAdjustment, slowDelay);
                 
-                // After micro-calibration, hand is at position 0 (12 o'clock)
-                // Move it back to current minute position (which should be 59 or 0)
-                int currentMinute = clockTime.getMinute();
-                clockMotor.moveToMinute(currentMinute);
-                
+                // After micro-calibration, hand is already at position 0
                 clockMotor.powerOff();
             }
             
@@ -218,7 +199,18 @@ void Clock::update() {
             }
             
             lastHourForAnimation = nextHour;
+            hourTransitionHandled = true;
         }
+    }
+    
+    // Handle minute change (but skip if we just handled hour transition)
+    if (!hourTransitionHandled && clockTime.hasMinuteChanged()) {
+        handleMinuteChange();
+    }
+    
+    // Handle hour change (but skip if we just handled hour transition)
+    if (!hourTransitionHandled && clockTime.hasHourChanged()) {
+        handleHourChange();
     }
     
     // Handle automatic pattern rotation

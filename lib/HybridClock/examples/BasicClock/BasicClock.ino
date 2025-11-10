@@ -23,7 +23,7 @@
  */
 
 // Enable Serial debugging output from the library
-#define HYBRIDCLOCK_ENABLE_SERIAL
+// #define HYBRIDCLOCK_ENABLE_SERIAL
 
 #include <Wire.h>
 #include <DS3231-RTC.h>
@@ -32,7 +32,7 @@
 // Hardware configuration
 #define STEPS_PER_REVOLUTION  2048      // Steps for 28BYJ-48 motor
 #define FIRST_MOTOR_PIN       14        // A0 (pins A0-A3 used sequentially)
-#define SENSOR_PIN            2         // Hall effect sensor
+#define SENSOR_PIN            A6         // Hall effect sensor
 #define NEOPIXEL_PIN          6         // NeoPixel data pin
 #define HOUR_LEDS             24        // LEDs in hour ring
 #define MINUTE_LEDS           12        // LEDs in minute ring

@@ -3,9 +3,12 @@
 // Uncomment to enable Serial debugging output from the library
 // #define HYBRIDCLOCK_ENABLE_SERIAL
 
+// Uncomment to enable hour-change animations (saves ~600 bytes Flash)
+// #define HYBRIDCLOCK_ENABLE_ANIMATIONS
+
 #ifdef HYBRIDCLOCK_ENABLE_SERIAL
-  #define SERIAL_PRINT(x) SERIAL_PRINT(x)
-  #define SERIAL_PRINTLN(x) SERIAL_PRINTLN(x)
+  #define SERIAL_PRINT(x) Serial.print(x)
+  #define SERIAL_PRINTLN(x) Serial.println(x)
 #else
   #define SERIAL_PRINT(x)
   #define SERIAL_PRINTLN(x)
@@ -59,20 +62,25 @@ void Clock::begin(DS3231* rtcPtr) {
     // Get initial time
     clockTime.update();
     int initialMinute = clockTime.getMinute();
+#ifdef HYBRIDCLOCK_ENABLE_ANIMATIONS
     int initialHour = clockTime.getHour();
+#endif
     
+#ifdef HYBRIDCLOCK_ENABLE_SERIAL
     if (verboseLogging) {
         SERIAL_PRINT(F("Clock: Initial time - "));
-        SERIAL_PRINT(initialHour);
+        SERIAL_PRINT(clockTime.getHour());
         SERIAL_PRINT(F(":"));
         SERIAL_PRINTLN(initialMinute);
     }
+#endif
     
     // Set initial brightness based on quiet hours
     if (quietHoursEnabled) {
         updateQuietHoursBrightness();
     }
     
+#ifdef HYBRIDCLOCK_ENABLE_ANIMATIONS
     // Show hour change animation on startup if enabled
     if (testAnimationOnStartup && hourChangeAnimationEnabled) {
         if (verboseLogging) SERIAL_PRINTLN(F("Clock: Testing hour change animation on startup..."));
@@ -84,6 +92,7 @@ void Clock::begin(DS3231* rtcPtr) {
         animationManager.playHourChangeAnimation(clockDisplay, testHour);
         if (verboseLogging) SERIAL_PRINTLN(F("Clock: Hour change animation test complete"));
     }
+#endif
     
     // Move to current minute position
     clockMotor.moveToMinute(initialMinute);
@@ -149,9 +158,12 @@ void Clock::update() {
     }
     
     int minute = clockTime.getMinute();
+#ifdef HYBRIDCLOCK_ENABLE_ANIMATIONS
     int second = clockTime.getSecond();
+#endif
     int hour = clockTime.getHour();
     
+#ifdef HYBRIDCLOCK_ENABLE_ANIMATIONS
     // Hour change animation - trigger at exactly 59:58 for seamless timing
     bool hourTransitionHandled = false;
     if (hourChangeAnimationEnabled && minute == 59 && second == 58) {
@@ -202,6 +214,24 @@ void Clock::update() {
             hourTransitionHandled = true;
         }
     }
+#else
+    // Without animations, just handle micro-calibration at hour changes
+    bool hourTransitionHandled = false;
+    if (clockTime.hasHourChanged()) {
+        int currentHour = clockTime.getHour();
+        
+        // Perform micro-calibration if enabled at the appropriate hours
+        if (microCalibrationEnabled && currentHour % microCalibrationInterval == 0 && minute == 0) {
+#ifdef HYBRIDCLOCK_ENABLE_SERIAL
+            if (verboseLogging) SERIAL_PRINTLN(F("Clock: Performing micro-calibration"));
+#endif
+            clockMotor.powerOn();
+            clockMotor.microCalibrate(centeringAdjustment, slowDelay);
+            clockMotor.moveToMinute(0);  // Return to current position
+            clockMotor.powerOff();
+        }
+    }
+#endif
     
     // Handle minute change (but skip if we just handled hour transition)
     if (!hourTransitionHandled && clockTime.hasMinuteChanged()) {

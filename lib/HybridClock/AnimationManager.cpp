@@ -10,6 +10,8 @@ AnimationManager::AnimationManager()
     }
 }
 
+#ifdef HYBRIDCLOCK_ENABLE_ANIMATIONS
+
 void AnimationManager::playHourChangeAnimation(ClockDisplay& display, int newHour) {
     // For now, just play windmill - the only existing animation
     // In the future, this can be extended to support multiple animations
@@ -100,3 +102,27 @@ void AnimationManager::playWindmill(ClockDisplay& display, int newHour) {
 
 // Future: Additional animations can be added here
 // For now, only Windmill (moved from ClockDisplay) is implemented
+
+#else // HYBRIDCLOCK_ENABLE_ANIMATIONS not defined - provide stub implementations
+
+void AnimationManager::playHourChangeAnimation(ClockDisplay& display, int newHour) {
+    // Stub - do nothing when animations are disabled
+}
+
+void AnimationManager::enableAnimation(AnimationType type, bool enabled) {
+    // Stub
+}
+
+bool AnimationManager::isAnimationEnabled(AnimationType type) const {
+    return false;
+}
+
+void AnimationManager::selectRandomAnimation() {
+    // Stub
+}
+
+int AnimationManager::countEnabledAnimations() const {
+    return 0;
+}
+
+#endif // HYBRIDCLOCK_ENABLE_ANIMATIONS

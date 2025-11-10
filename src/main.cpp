@@ -1,3 +1,14 @@
+/**
+ * main.cpp - Full-featured HybridClock
+ * 
+ * Includes all features: animations, pattern rotation, quiet hours, etc.
+ */
+
+// Enable all library features
+#define HYBRIDCLOCK_ENABLE_SERIAL
+#define HYBRIDCLOCK_ENABLE_ANIMATIONS
+#define HYBRIDCLOCK_ENABLE_EXTRA_PATTERNS
+
 #include <Arduino.h>
 #include <Wire.h>
 #include <DS3231-RTC.h>

@@ -1,5 +1,8 @@
 #include "ClockDisplay.h"
 
+// Uncomment to enable extra LED patterns (saves ~1KB Flash)
+// #define HYBRIDCLOCK_ENABLE_EXTRA_PATTERNS
+
 ClockDisplay::ClockDisplay(int pin, int hourLeds, int minuteLeds, uint8_t brightness)
     : pixels(hourLeds + minuteLeds, pin, NEO_GRB + NEO_KHZ800)
     , hourLeds(hourLeds)
@@ -30,6 +33,7 @@ void ClockDisplay::adjustBrightnessForQuietMode(uint8_t& outerMin, uint8_t& oute
 }
 
 void ClockDisplay::displayPattern(Pattern pattern) {
+#ifdef HYBRIDCLOCK_ENABLE_EXTRA_PATTERNS
     switch (pattern) {
         case BREATHING_RINGS:
             displayBreathingRings();
@@ -50,6 +54,10 @@ void ClockDisplay::displayPattern(Pattern pattern) {
             displayDefaultComplement();
             break;
     }
+#else
+    // Only use default pattern when extra patterns are disabled
+    displayDefaultComplement();
+#endif
 }
 
 void ClockDisplay::displayDefaultComplement() {
@@ -59,6 +67,8 @@ void ClockDisplay::displayDefaultComplement() {
     currentHue += 1024; // HUE_STEP
     currentHue %= (5 * 65536); // MAX_HUE
 }
+
+#ifdef HYBRIDCLOCK_ENABLE_EXTRA_PATTERNS
 
 void ClockDisplay::displayBreathingRings() {
     uint32_t time = millis();
@@ -205,6 +215,16 @@ void ClockDisplay::displayColorDrift() {
     currentHue += 171; // HUE_STEP / 6
     currentHue %= (5 * 65536);
 }
+
+#else // HYBRIDCLOCK_ENABLE_EXTRA_PATTERNS not defined - provide stub implementations
+
+void ClockDisplay::displayBreathingRings() { displayDefaultComplement(); }
+void ClockDisplay::displayRippleEffect() { displayDefaultComplement(); }
+void ClockDisplay::displaySlowSpiral() { displayDefaultComplement(); }
+void ClockDisplay::displayGentleWaves() { displayDefaultComplement(); }
+void ClockDisplay::displayColorDrift() { displayDefaultComplement(); }
+
+#endif // HYBRIDCLOCK_ENABLE_EXTRA_PATTERNS
 
 void ClockDisplay::showHourIndicators(int hour12) {
     // Light up LEDs for all hours from 1 through current hour (except 12)

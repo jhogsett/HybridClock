@@ -2,7 +2,7 @@
 #define CONFIG_H
 
 // Hardware Configuration
-#define SENSOR_PIN 2
+#define SENSOR_PIN A6
 #define LED_PIN 3
 #define NEOPIXEL_PIN 6
 #define FIRST_MOTOR_PIN 14

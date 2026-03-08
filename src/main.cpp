@@ -33,12 +33,8 @@ void setup() {
     Wire.begin();
     
     // Configure clock
-    #ifdef BLACK_DEVICE
-        hybridClock.setCenteringAdjustment(9);
-    #elif defined(WHITE_DEVICE)
-        hybridClock.setCenteringAdjustment(3);
-    #endif
-    
+    hybridClock.setCenteringAdjustment(CENTERING_ADJUSTMENT);
+
     #ifdef ENABLE_QUIET_HOURS
         hybridClock.enableQuietHours(true, QUIET_HOURS_START, QUIET_HOURS_END, QUIET_BRIGHTNESS_PERCENT);
     #endif

@@ -2,21 +2,32 @@
 #define CONFIG_H
 
 // Hardware Configuration
-#define SENSOR_PIN A6
+// #define SENSOR_PIN 
 #define LED_PIN 3
 #define NEOPIXEL_PIN 6
 #define FIRST_MOTOR_PIN 14
 
 // Device-specific calibration
-#define BLACK_DEVICE 
+// #define BLACK_DEVICE 
 // #define WHITE_DEVICE 
+// #define CHRONOSPHERE_DEVICE1
+#define CHRONOSPHERE_DEVICE2
 
 #if defined(BLACK_DEVICE)
+  #define SENSOR_PIN 2
   #define CENTERING_ADJUSTMENT 9
 #elif defined(WHITE_DEVICE)
+  #define SENSOR_PIN 2
+  #define CENTERING_ADJUSTMENT 3
+#elif defined(CHRONOSPHERE_DEVICE1)
+  #define SENSOR_PIN A6
+  #define CENTERING_ADJUSTMENT 9
+#elif defined(CHRONOSPHERE_DEVICE2)
+  #define SENSOR_PIN A6
   #define CENTERING_ADJUSTMENT 3
 #else
   #define CENTERING_ADJUSTMENT 0
+  #define SENSOR_PIN 2
 #endif
 
 // Motor Configuration
